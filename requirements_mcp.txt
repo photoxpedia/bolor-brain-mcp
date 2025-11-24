@@ -1,0 +1,10 @@
+# Core MCP Server Requirements
+mcp>=0.1.0
+
+# Enhanced Brain Features
+numpy>=1.21.0
+sentence-transformers>=2.2.0
+
+# Optional dependencies (installed automatically with sentence-transformers)
+# torch>=1.9.0
+# transformers>=4.21.0

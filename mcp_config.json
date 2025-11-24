@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "bolor-brain-mcp": {
+      "command": "python3",
+      "args": ["brain_mcp_server.py"],
+      "cwd": ".",
+      "env": {
+        "BRAIN_STORAGE_PATH": "./brain_mcp_storage",
+        "BRAIN_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
