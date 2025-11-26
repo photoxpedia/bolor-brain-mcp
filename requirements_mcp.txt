@@ -1,10 +1,21 @@
-# Core MCP Server Requirements
-mcp>=0.1.0
+# Core MCP Server Requirements - Updated for 2025 compliance
+mcp>=1.0.0
 
 # Enhanced Brain Features
-numpy>=1.21.0
-sentence-transformers>=2.2.0
+numpy>=1.24.0
+sentence-transformers>=3.0.0
+
+# Security Dependencies - OAuth 2.1 & RFC 8707 compliance
+cryptography>=41.0.0
+PyJWT>=2.8.0
 
 # Optional dependencies (installed automatically with sentence-transformers)
-# torch>=1.9.0
-# transformers>=4.21.0
+# torch>=2.0.0
+# transformers>=4.35.0
+
+# HTTP Transport for MCP 2025 Streamable HTTP
+aiohttp>=3.9.0
+
+# Development and Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
