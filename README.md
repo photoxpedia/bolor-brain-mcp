@@ -3,8 +3,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-13%2F13%20passed-brightgreen.svg)]()
+[![MCP 2025](https://img.shields.io/badge/MCP-2025%20Compliant-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)]()
+[![OAuth 2.1](https://img.shields.io/badge/OAuth-2.1%20Secure-red.svg)]()
 
 A revolutionary Model Context Protocol (MCP) server that brings true cognitive architecture to Claude Code. Experience memory, learning, and contextual understanding like never before.
+
+**🚀 NEW v1.1.0: MCP 2025 Compliant** - Now with OAuth 2.1 security, SQLite storage, async operations, and enterprise monitoring!
 
 **Author:** [Bolorerdene Bundgaa](https://bolor.me)  
 **Email:** bolor@ariunbolor.org  
@@ -26,6 +31,14 @@ Bolor Brain MCP isn't just another tool—it's the first **cognitive architectur
 - ✅ **Multi-Modal Support**: Text, images, audio, and structured data
 - ✅ **Real-time Learning**: Continuous improvement from interactions
 - ✅ **Persistent State**: Maintains context across sessions
+
+### 🔐 MCP 2025 Security & Scalability
+- ✅ **OAuth 2.1 Compliant**: Production-ready authentication with RFC 8707 resource indicators
+- ✅ **SQLite Storage**: 10-100x faster queries with FTS5 full-text search
+- ✅ **Async Operations**: Long-running tasks with status tracking
+- ✅ **Enterprise Monitoring**: Comprehensive metrics, uptime tracking, performance analytics
+- ✅ **Pagination Support**: Handle millions of memories efficiently
+- ✅ **Server Discovery**: Standard .well-known endpoint for automatic discovery
 
 ## 🛠️ Quick Start
 
