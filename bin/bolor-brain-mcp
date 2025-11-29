@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+
+// Bolor Brain MCP executable entry point
+require('../index.js');

@@ -1,0 +1,83 @@
+{
+  "name": "bolor-brain-mcp",
+  "version": "1.1.0",
+  "description": "Revolutionary cognitive architecture MCP server with true memory, learning, and contextual understanding capabilities",
+  "mcpName": "io.github.photoxpedia/bolor-brain-mcp",
+  "author": {
+    "name": "Bolorerdene Bundgaa",
+    "email": "bolor@ariunbolor.org",
+    "url": "https://bolor.me"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "cognitive",
+    "memory", 
+    "brain",
+    "ai",
+    "learning",
+    "embeddings",
+    "sqlite",
+    "semantic-search",
+    "claude-code"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/photoxpedia/bolor-brain-mcp.git"
+  },
+  "homepage": "https://github.com/photoxpedia/bolor-brain-mcp",
+  "bugs": {
+    "url": "https://github.com/photoxpedia/bolor-brain-mcp/issues"
+  },
+  "main": "index.js",
+  "bin": {
+    "bolor-brain-mcp": "./bin/bolor-brain-mcp"
+  },
+  "files": [
+    "brain_mcp_server.py",
+    "requirements_mcp.txt",
+    "index.js",
+    "bin/",
+    "README.md",
+    "LICENSE",
+    ".well-known/",
+    "mcp_config.json"
+  ],
+  "scripts": {
+    "start": "python3 brain_mcp_server.py",
+    "test": "python3 test_e2e_bulletproof.py",
+    "validate": "python3 validate_installation.py",
+    "install-deps": "pip3 install -r requirements_mcp.txt"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.8.0"
+  },
+  "mcp": {
+    "version": "2025.1",
+    "transport": ["stdio", "http"],
+    "capabilities": {
+      "oauth2": true,
+      "resource_indicators": true,
+      "async_operations": true,
+      "pagination": true,
+      "sqlite_storage": true,
+      "vector_embeddings": true,
+      "cognitive_architecture": true
+    },
+    "security": {
+      "oauth2_compliant": true,
+      "rfc8707_compliant": true,
+      "local_storage_only": true
+    }
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "python3": ">=3.8.0"
+  },
+  "optionalDependencies": {},
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
