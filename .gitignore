@@ -85,4 +85,4 @@ embeddings/
 
 # Temporary test files
 validation_results.json
-bulletproof_test_results.json
+bulletproof_test_results.json.mcpregistry_*
