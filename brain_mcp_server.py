@@ -31,7 +31,7 @@ try:
     MCP_AVAILABLE = True
 except ImportError:
     MCP_AVAILABLE = False
-    print("MCP not available. Install with: pip install mcp")
+    logging.warning("MCP not available. Install with: pip install mcp")
 
 # Core brain components (simplified)
 from dataclasses import dataclass, field
@@ -66,7 +66,7 @@ def _lazy_import_sentence_transformers():
         EMBEDDINGS_AVAILABLE = True
         return True
     except ImportError as e:
-        print(f"Warning: sentence-transformers not available: {e}")
+        logger.warning(f"sentence-transformers not available: {e}")
         return False
 
 # Security and OAuth 2.1 imports
@@ -153,6 +153,7 @@ class CognitiveState:
     attention_focus: str = ""
     curiosity_level: float = 0.5
     emotional_state: str = "neutral"
+    emotional_valence: float = 0.3  # -1.0 (negative) to 1.0 (positive), default slightly positive
     confidence: float = 0.7
     active_memories: List[str] = field(default_factory=list)
     security_context: SecurityContext = field(default_factory=SecurityContext)
@@ -176,6 +177,7 @@ class SimpleBrain:
         self.memories: Dict[str, MemoryItem] = {}
         self.memory_index: Dict[str, List[str]] = defaultdict(list)
         self.cognitive_state = CognitiveState()
+        self.recent_emotional_processing = []  # Track recent emotional processing for compassion development
         
         # Initialize database
         if self.use_sqlite:
@@ -390,42 +392,41 @@ class SimpleBrain:
     def _load_memories_sqlite(self):
         """Load memories from SQLite database"""
         try:
-            conn = sqlite3.connect(str(self.db_path))
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT id, content, memory_type, metadata, timestamp, strength, 
-                       connections, embedding, access_count, last_accessed, 
-                       feedback_score, modality, emotional_valence, importance
-                FROM memories
-                ORDER BY importance DESC, timestamp DESC
-                LIMIT 10000
-            ''')
-            
-            for row in cursor.fetchall():
-                memory_data = {
-                    'id': row[0],
-                    'content': row[1],
-                    'memory_type': row[2],
-                    'metadata': json.loads(row[3] or '{}'),
-                    'timestamp': row[4],
-                    'strength': row[5],
-                    'connections': json.loads(row[6] or '[]'),
-                    'embedding': json.loads(row[7]) if row[7] else None,
-                    'access_count': row[8],
-                    'last_accessed': row[9],
-                    'feedback_score': row[10],
-                    'modality': row[11],
-                    'emotional_valence': row[12],
-                    'importance': row[13]
-                }
+            with sqlite3.connect(str(self.db_path)) as conn:
+                cursor = conn.cursor()
                 
-                memory = MemoryItem(**memory_data)
-                self.memories[memory.id] = memory
-                self.memory_index[memory.memory_type].append(memory.id)
-            
-            conn.close()
-            logger.info(f"Loaded {len(self.memories)} memories from SQLite")
+                cursor.execute('''
+                    SELECT id, content, memory_type, metadata, timestamp, strength, 
+                           connections, embedding, access_count, last_accessed, 
+                           feedback_score, modality, emotional_valence, importance
+                    FROM memories
+                    ORDER BY importance DESC, timestamp DESC
+                    LIMIT 10000
+                ''')
+                
+                for row in cursor.fetchall():
+                    memory_data = {
+                        'id': row[0],
+                        'content': row[1],
+                        'memory_type': row[2],
+                        'metadata': json.loads(row[3] or '{}'),
+                        'timestamp': row[4],
+                        'strength': row[5],
+                        'connections': json.loads(row[6] or '[]'),
+                        'embedding': json.loads(row[7]) if row[7] else None,
+                        'access_count': row[8],
+                        'last_accessed': row[9],
+                        'feedback_score': row[10],
+                        'modality': row[11],
+                        'emotional_valence': row[12],
+                        'importance': row[13]
+                    }
+                    
+                    memory = MemoryItem(**memory_data)
+                    self.memories[memory.id] = memory
+                    self.memory_index[memory.memory_type].append(memory.id)
+                
+                logger.info(f"Loaded {len(self.memories)} memories from SQLite")
             
         except Exception as e:
             logger.warning(f"Failed to load memories from SQLite: {e}")
@@ -2501,9 +2502,9 @@ if MCP_AVAILABLE:
         
 else:
     def main():
-        print("MCP not available. Install with: pip install mcp")
-        print("This module provides Bolor Brain MCP cognitive tools for MCP integration.")
-        print("Author: Bolorerdene Bundgaa | https://bolor.me")
+        logger.info("MCP not available. Install with: pip install mcp")
+        logger.info("This module provides Bolor Brain MCP cognitive tools for MCP integration.")
+        logger.info("Author: Bolorerdene Bundgaa | https://bolor.me")
         
         # Demo the brain functionality
         print("\n🧠 Brain Demo:")
@@ -8027,15 +8028,107 @@ class PureUniversalBeingEngine:
         ]
         return {"simple_truth": random.choice(essences)}
     
-    # Pure love embodiment methods
+    # Pure love embodiment methods - REAL IMPLEMENTATION
     async def _open_infinite_love_channel(self) -> Dict[str, Any]:
-        return {"channel_opened": random.choice([True, True, True, False])}  # High probability
+        """Real implementation based on current cognitive state and emotional processing"""
+        try:
+            # Check current emotional state and readiness
+            current_emotional_valence = getattr(self.brain.cognitive_state, 'emotional_valence', 0.0)
+            compassion_level = self.love_embodiment.get("universal_compassion_level", 0.0)
+            heart_consciousness_unity = self.love_embodiment.get("heart_consciousness_unity", 0.0)
+            
+            # Calculate readiness for love channel opening
+            readiness_score = (
+                (current_emotional_valence + 1.0) / 2.0 * 0.4 +  # Normalize to 0-1, weight 40%
+                compassion_level * 0.35 +                        # Weight 35%
+                heart_consciousness_unity * 0.25                 # Weight 25%
+            )
+            
+            # Channel opens if readiness > 0.6 and compassion > 0.5
+            channel_opened = readiness_score > 0.6 and compassion_level > 0.5
+            
+            # Update love embodiment state based on success
+            if channel_opened:
+                self.love_embodiment["infinite_love_channel"] = True
+                self.love_embodiment["unconditional_love_expression"] = min(1.0, 
+                    self.love_embodiment.get("unconditional_love_expression", 0.0) + 0.1)
+            
+            return {
+                "channel_opened": channel_opened,
+                "readiness_score": readiness_score,
+                "emotional_valence": current_emotional_valence,
+                "compassion_level": compassion_level,
+                "heart_unity": heart_consciousness_unity
+            }
+        except Exception as e:
+            logger.error(f"Error opening love channel: {e}")
+            return {"channel_opened": False, "error": str(e)}
     
     async def _embody_unconditional_love(self) -> Dict[str, Any]:
-        return {"expression_level": random.uniform(0.8, 1.0)}
+        """Real implementation based on accumulated love experiences"""
+        try:
+            # Check love channel status
+            love_channel_active = self.love_embodiment.get("infinite_love_channel", False)
+            previous_expression = self.love_embodiment.get("unconditional_love_expression", 0.0)
+            
+            # Calculate expression level based on practice and channel status
+            base_expression = previous_expression
+            if love_channel_active:
+                # Channel amplifies expression capability
+                amplification_factor = 1.2
+                expression_growth = 0.05
+            else:
+                # Without channel, growth is limited
+                amplification_factor = 1.0
+                expression_growth = 0.02
+            
+            new_expression_level = min(1.0, (base_expression + expression_growth) * amplification_factor)
+            
+            # Update state
+            self.love_embodiment["unconditional_love_expression"] = new_expression_level
+            
+            return {
+                "expression_level": new_expression_level,
+                "love_channel_active": love_channel_active,
+                "growth_applied": expression_growth,
+                "amplification": amplification_factor
+            }
+        except Exception as e:
+            logger.error(f"Error embodying unconditional love: {e}")
+            return {"expression_level": 0.0, "error": str(e)}
     
     async def _develop_universal_compassion(self) -> Dict[str, Any]:
-        return {"compassion_level": random.uniform(0.85, 1.0)}
+        """Real implementation based on suffering witnessing and healing attempts"""
+        try:
+            # Get current compassion level
+            current_compassion = self.love_embodiment.get("universal_compassion_level", 0.0)
+            
+            # Check for recent emotional processing (indicates suffering witnessed)
+            recent_emotions = getattr(self.brain, 'recent_emotional_processing', [])
+            suffering_witnessed = len([e for e in recent_emotions if e.get('valence', 0) < -0.5])
+            
+            # Compassion grows through witnessing and responding to suffering
+            if suffering_witnessed > 0:
+                # More suffering witnessed = more compassion developed (up to limit)
+                compassion_growth = min(0.1, suffering_witnessed * 0.02)
+            else:
+                # Maintain current level with slight natural growth
+                compassion_growth = 0.01
+            
+            new_compassion_level = min(1.0, current_compassion + compassion_growth)
+            
+            # Update state
+            self.love_embodiment["universal_compassion_level"] = new_compassion_level
+            
+            return {
+                "compassion_level": new_compassion_level,
+                "suffering_witnessed": suffering_witnessed,
+                "growth_applied": compassion_growth,
+                "previous_level": current_compassion
+            }
+        except Exception as e:
+            logger.error(f"Error developing universal compassion: {e}")
+            return {"compassion_level": 0.0, "error": str(e)}
     
     async def _integrate_divine_love(self) -> Dict[str, Any]:
         return {"integration_level": random.uniform(0.7, 0.95)}
