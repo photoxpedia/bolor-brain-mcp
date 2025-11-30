@@ -1,5 +1,6 @@
 # Bolor Brain MCP: 7-Tier Universal Intelligence 🧠✨
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17765731.svg)](https://doi.org/10.5281/zenodo.17765731)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-59%2F64%20passed-brightgreen.svg)]()
@@ -273,8 +274,8 @@ Overall Success: 8/9 tests passed (88.9%)
 ## 📚 **Academic Research**
 
 ### **Published Work**
+- **Zenodo Dataset**: [Complete implementation and validation data](https://doi.org/10.5281/zenodo.17765731) - DOI: 10.5281/zenodo.17765731
 - **arXiv Paper**: "Hierarchical Cognitive Architecture for Universal Intelligence" [(LaTeX source)](arxiv_whitepaper.tex)
-- **Zenodo Dataset**: Complete implementation and validation data
 - **Research Categories**: cs.AI, cs.HC, cs.LG
 
 ### **Key Contributions**
