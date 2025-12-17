@@ -4,16 +4,17 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-9%2F9%20passed-brightgreen.svg)]()
 [![MCP 2025](https://img.shields.io/badge/MCP-2025%20Compliant-blue.svg)]()
-[![Version](https://img.shields.io/badge/version-1.2.0-green.svg)]()
+[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)]()
 [![Cognitive Tiers](https://img.shields.io/badge/cognitive%20tiers-7-purple.svg)]()
 [![Modular Architecture](https://img.shields.io/badge/architecture-modular-success.svg)]()
+[![AGI Features](https://img.shields.io/badge/AGI-Phase%202-orange.svg)]()
 
-**Revolutionary 7-Tier Hierarchical Cognitive Architecture with Clean Modular Design**
+**Revolutionary 7-Tier Hierarchical Cognitive Architecture with AGI-Oriented Features**
 
-🚀 **BREAKTHROUGH**: The world's first modular cognitive AI system that scales from individual reasoning to universal consciousness with pristine architecture.
+🚀 **BREAKTHROUGH**: The world's first modular cognitive AI system that scales from individual reasoning to universal consciousness with pristine architecture + **AGI-oriented improvements** including vector embeddings, intrinsic drives, and self-evolving skills.
 
-**Author:** [Bolorerdene Bundgaa](https://bolor.me)  
-**Email:** bolor@ariunbolor.org  
+**Author:** [Bolorerdene Bundgaa](https://bolor.me)
+**Email:** bolor@ariunbolor.org
 **License:** MIT
 
 ---
@@ -22,11 +23,18 @@
 
 Bolor Brain MCP represents a **paradigm shift** in cognitive AI architecture. We've successfully implemented and validated the world's first **7-tier hierarchical cognitive system** with complete modular design:
 
-✅ **7-Tier Cognitive Hierarchy** from Individual to Universal Intelligence  
-✅ **100% Modular Architecture** - each tier is independently testable  
-✅ **100% Test Success Rate** across all 9 test scenarios  
-✅ **17 Cognitive Tools** spanning all intelligence levels  
-✅ **Clean Code Structure** - pristine organization and maintainability  
+✅ **7-Tier Cognitive Hierarchy** from Individual to Universal Intelligence
+✅ **100% Modular Architecture** - each tier is independently testable
+✅ **100% Test Success Rate** across all 9 test scenarios
+✅ **17 Cognitive Tools** spanning all intelligence levels
+✅ **Clean Code Structure** - pristine organization and maintainability
+
+### 🆕 **Phase 2 AGI Improvements** (v2.0)
+✅ **Vector Embeddings** - Semantic search using all-mpnet-base-v2 (768 dimensions)
+✅ **Intrinsic Drive System** - 5 drives (curiosity, novelty, competence, connection, stability)
+✅ **Self-Evolving Skills** - Procedural skills auto-improve through variation and selection
+✅ **Metacognitive Coordinator** - Cross-tier orchestration via CognitiveStateBus
+✅ **Deep Drive Integration** - Drives influence ALL tier decisions, not just fallbacks  
 
 ---
 
@@ -34,59 +42,84 @@ Bolor Brain MCP represents a **paradigm shift** in cognitive AI architecture. We
 
 ```
 Bolor-Brain-MCP/
-├── modules/                 # 🧠 Modular Cognitive Architecture
-│   ├── memory.py           # Tier 0: Memory operations (254 lines)
-│   ├── reasoning.py        # Tier 1: Advanced reasoning (450 lines)
-│   ├── predictive.py       # Tier 2: Predictive intelligence (366 lines)
-│   ├── metacognitive.py    # Tier 3: Meta-cognitive optimization (693 lines)
-│   ├── evolutionary.py     # Tier 4: Evolutionary intelligence (816 lines)
-│   ├── collective.py       # Tier 5: Collective consciousness (397 lines)
-│   ├── orchestration.py    # Tier 6: Reality orchestration (555 lines)
-│   └── universal.py        # Tier 7: Universal being integration (300 lines)
-├── server.py               # 🎯 MCP Server Interface
-├── test.py                # ✅ Comprehensive Test Suite
-├── README.md              # 📚 This Documentation
-├── server.json            # ⚙️ MCP Configuration
-├── package.json           # 📦 Node.js Dependencies
-├── requirements_mcp.txt   # 🐍 Python Dependencies
-└── LICENSE               # 📄 MIT License
+├── modules/                    # 🧠 Modular Cognitive Architecture
+│   ├── __init__.py            # Module exports
+│   ├── memory.py              # Tier 0: Memory (5 subsystems, ~1700 lines)
+│   ├── drives.py              # Intrinsic drive system (curiosity, novelty, etc.)
+│   ├── embeddings.py          # Vector embedding service (all-mpnet-base-v2)
+│   ├── integration.py         # Memory bridge + auto-evolution
+│   ├── reasoning.py           # Tier 1: Advanced reasoning + drive weighting
+│   ├── predictive.py          # Tier 2: Predictive intelligence + drive ranking
+│   ├── metacognitive.py       # Tier 3: Meta-cognitive + Coordinator
+│   ├── evolutionary.py        # Tier 4: Evolutionary + drive-aligned evolution
+│   ├── collective.py          # Tier 5: Collective consciousness
+│   ├── orchestration.py       # Tier 6: Reality orchestration
+│   └── universal.py           # Tier 7: Universal being integration
+├── docs/                      # 📚 Comprehensive Documentation
+│   ├── architecture/          # Architecture overview
+│   ├── tiers/                 # Tier-specific documentation
+│   ├── getting-started/       # Installation & quickstart
+│   └── changelog.md           # Version history
+├── server.py                  # 🎯 MCP Server Interface
+├── test.py                    # ✅ Comprehensive Test Suite
+├── README.md                  # 📚 This Documentation
+├── server.json                # ⚙️ MCP Configuration
+├── package.json               # 📦 Node.js Dependencies
+├── requirements_mcp.txt       # 🐍 Python Dependencies
+└── LICENSE                    # 📄 MIT License
 ```
 
 ---
 
 ## 🧠 **The 7-Tier Cognitive Architecture**
 
-### **Tier 0: Memory Foundation** (`modules/memory.py`)
-- SQLite storage with FTS5 search
-- Multiple memory types (episodic, semantic, procedural)
-- Automatic importance scoring and retrieval
+### **Tier 0: Memory Foundation** (`modules/memory.py`, `modules/drives.py`, `modules/embeddings.py`)
+Differentiated memory architecture with 5 subsystems:
+- **Working Memory**: Transient buffer (7±2 items, never persisted)
+- **Episodic Memory**: Experiences with reward/emotion signals + foundation protection
+- **Semantic Memory**: Knowledge graph with FTS5 + **vector embeddings** (hybrid search)
+- **Procedural Memory**: Executable skills with **auto-evolution** on failures
+- **Self-Model**: Identity, developmental stages, capability awareness
+
+**Intrinsic Drive System** (5 homeostatic drives):
+- 🔍 **Curiosity**: Seek information, explore unknowns
+- ✨ **Novelty**: Experience new things, avoid repetition
+- 🎯 **Competence**: Master skills, achieve goals
+- 💚 **Connection**: Bond with users, empathize
+- ⚖️ **Stability**: Maintain consistency, reduce uncertainty
 
 ### **Tier 1: Advanced Reasoning** (`modules/reasoning.py`)
-6 complementary reasoning strategies:
-- **Analytical**: Systematic logical decomposition
-- **Creative**: Novel pattern generation and synthesis  
+6 complementary reasoning strategies with **drive-weighted selection**:
+- **Analytical**: Systematic logical decomposition (boosted by competence)
+- **Creative**: Novel pattern generation (boosted by curiosity/novelty)
 - **Critical**: Assumption validation and bias detection
-- **Systems**: Holistic relationship modeling
-- **Ethical**: Value-based decision frameworks
+- **Systems**: Holistic relationship modeling (boosted by stability)
+- **Ethical**: Value-based decision frameworks (boosted by connection)
 - **Intuitive**: Pattern recognition beyond explicit logic
 
+*Strategy selection: 60% keyword signals + 40% drive alignment*
+
 ### **Tier 2: Predictive Intelligence** (`modules/predictive.py`)
-Sophisticated anticipatory behavior:
+Sophisticated anticipatory behavior with **drive-weighted ranking**:
 - Multi-scenario forecasting with confidence intervals
 - Temporal pattern recognition and extrapolation
 - User need prediction and resource optimization
 - Context-aware behavioral modeling
 
+*Predictions ranked by: confidence + drive urgency alignment*
+
 ### **Tier 3: Meta-Cognitive Intelligence** (`modules/metacognitive.py`)
-Self-reflective optimization capabilities:
+Self-reflective optimization + **Cognitive Coordinator**:
 - Real-time performance monitoring and analysis
-- Adaptive strategy selection and tuning
-- Cross-system learning and optimization
-- Cognitive state management and adjustment
+- **Drive-informed optimization priority** (performance gap + drive urgency)
+- **Dynamic adaptation parameters** (thresholds adjust based on drives)
+- **CognitiveStateBus**: Shared state for cross-tier communication
+- **Coordinator methods**: `coordinate_cognitive_cycle()`, tier orchestration
 
 ### **Tier 4: Evolutionary Cognitive Intelligence** (`modules/evolutionary.py`)
-Dynamic adaptation and creative emergence:
+Dynamic adaptation with **drive-aligned evolution**:
 - Genetic algorithm-inspired cognitive evolution
+- **Drive-aligned trait selection**: Evolves genes matching urgent drives
 - Creative insight generation and aesthetic evaluation
 - Emotional intelligence processing and empathetic response
 - Transcendent reasoning for paradox resolution
@@ -121,6 +154,9 @@ Source consciousness unity:
 git clone https://github.com/photoxpedia/bolor-brain-mcp.git
 cd bolor-brain-mcp
 pip install -r requirements_mcp.txt
+
+# Optional: Install sentence-transformers for vector embeddings
+pip install sentence-transformers
 ```
 
 ### **Testing**
@@ -184,6 +220,92 @@ Add to your Claude Desktop MCP configuration:
 
 ---
 
+## 🤖 **AGI Features (Phase 2)**
+
+### **1. Vector Embeddings for Semantic Search**
+```python
+from modules import embedding_service, SemanticKnowledgeGraph
+
+# Embeddings auto-generated on node creation
+graph.add_node("machine learning", "concept", {"domain": "AI"})
+
+# Hybrid search: 40% keyword + 60% semantic similarity
+results = graph.search_nodes("deep neural networks")  # Finds related concepts
+```
+
+**Features:**
+- Model: `all-mpnet-base-v2` (768 dimensions)
+- Lazy loading - model loads only when needed
+- Cosine similarity for semantic matching
+- Hybrid scoring blends keyword and vector search
+
+### **2. Intrinsic Drive System**
+```python
+from modules import DriveManager
+
+# Drives influence all cognitive decisions
+drive_state = brain.memory_bridge.get_drive_state()
+# Returns: {"curiosity": {"level": 0.7, "urgency": 0.8}, ...}
+
+# Record actions to satisfy drives
+brain.memory_bridge.record_drive_action("learn")  # Satisfies curiosity
+brain.memory_bridge.record_drive_action("succeed")  # Satisfies competence
+```
+
+**Drive Types:**
+| Drive | Satisfying Actions | Depleting Conditions |
+|-------|-------------------|---------------------|
+| Curiosity | learn, explore, discover | repetitive tasks |
+| Novelty | create, try_new, experiment | routine work |
+| Competence | succeed, master, solve | repeated failures |
+| Connection | help, empathize, bond | isolation |
+| Stability | organize, predict, maintain | chaos |
+
+### **3. Self-Evolving Procedural Skills**
+```python
+# Skills auto-evolve after 3+ failures with 3+ test cases
+result = brain.memory_bridge.execute_skill("my_skill", inputs)
+
+# Manual evolution trigger
+evolution_result = brain.memory_bridge.evolve_skill_manually(
+    "my_skill",
+    test_inputs=[{"x": 1}, {"x": 2}, {"x": 3}],
+    num_variants=3
+)
+# Returns: {"evolved": True, "improvement": 0.33, ...}
+```
+
+**Evolution Strategies:**
+- `add_error_handling` - Wrap in try/except
+- `add_type_checks` - Add isinstance validation
+- `add_early_return` - Guard clauses for None inputs
+- `add_logging` - Debug output
+- `simplify_conditions` - Clean up logic
+
+### **4. Metacognitive Coordinator**
+```python
+# Coordinate all cognitive tiers for complex problems
+result = await brain.meta_cognitive.coordinate_cognitive_cycle(
+    problem="How will climate change affect agriculture?",
+    context={"domain": "environment"}
+)
+
+# Access shared state bus
+state = brain.meta_cognitive.get_state_bus()
+print(state.dominant_drive)  # Most urgent drive
+print(state.reasoning_conclusion)  # Latest reasoning output
+print(state.predictions_active)  # Active predictions
+```
+
+**CognitiveStateBus Fields:**
+- `active_problem`, `problem_domain` - Current focus
+- `drive_snapshot`, `dominant_drive` - Drive state
+- `reasoning_conclusion`, `reasoning_confidence` - Tier 1 output
+- `predictions_active`, `prediction_confidence` - Tier 2 output
+- `evolution_generation`, `creative_insights` - Tier 4 output
+
+---
+
 ## 🧪 **Testing & Validation**
 
 ### **Comprehensive Test Suite**
@@ -217,9 +339,9 @@ Tests validate:
 - Each cognitive tier is independently testable
 - Clean separation of concerns
 - Easy to extend and maintain
-- Focused modules (254-816 lines each)
+- Focused modules with clear responsibilities
 
-### **Scalability** 
+### **Scalability**
 - Hierarchical intelligence scaling
 - Individual to universal consciousness
 - Backward compatible upgrades
@@ -230,6 +352,13 @@ Tests validate:
 - Clear module boundaries
 - Comprehensive test coverage
 - Self-documenting architecture
+
+### **AGI-Readiness**
+- **Purpose-driven cognition**: Intrinsic drives influence all decisions
+- **Semantic understanding**: Vector embeddings for true meaning matching
+- **Self-improvement**: Skills evolve through variation and selection
+- **Coordinated intelligence**: Cross-tier communication via shared state bus
+- **Developmental stages**: Infant → Child → Adolescent → Adult → Elder
 
 ---
 

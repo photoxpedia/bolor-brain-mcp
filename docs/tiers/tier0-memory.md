@@ -4,15 +4,37 @@ The Memory Foundation is the bedrock of the cognitive architecture, providing pe
 
 ## 🎯 Overview
 
-The Memory Foundation (`modules/memory.py`) implements a sophisticated memory system using SQLite with FTS5 (Full-Text Search) capabilities, supporting multiple memory types with importance scoring and intelligent retrieval.
+The Memory Foundation (`modules/memory.py`, `modules/drives.py`, `modules/embeddings.py`) implements a sophisticated differentiated memory architecture with 5 specialized subsystems, intrinsic drives, and vector embeddings.
 
-### Key Capabilities
-- **Multiple Memory Types**: Episodic, Semantic, and Procedural memories
-- **FTS5 Full-Text Search**: High-performance content search and retrieval
-- **Importance Scoring**: Intelligent memory prioritization and retention
-- **Metadata Support**: Rich contextual information storage
-- **Automatic Cleanup**: Intelligent memory management and archival
-- **Performance Optimization**: Indexed queries and efficient storage
+### Key Capabilities (v2.0)
+- **5 Memory Subsystems**: Working, Episodic, Semantic, Procedural, Self-Model
+- **Vector Embeddings**: Semantic search using all-mpnet-base-v2 (768 dimensions)
+- **Hybrid Search**: 40% keyword (FTS5) + 60% vector similarity
+- **Intrinsic Drives**: 5 homeostatic drives (curiosity, novelty, competence, connection, stability)
+- **Self-Evolving Skills**: Procedural memories auto-improve on failures
+- **Foundation Protection**: First 100 memories protected from decay
+- **Memory Plasticity**: Automatic decay and consolidation
+- **Developmental Stages**: Infant → Child → Adolescent → Adult → Elder
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    UnifiedMemorySystem                       │
+├───────────┬───────────┬───────────┬───────────┬─────────────┤
+│  Working  │ Episodic  │ Semantic  │Procedural │  Self-Model │
+│  Memory   │  Memory   │  Memory   │  Memory   │             │
+├───────────┼───────────┼───────────┼───────────┼─────────────┤
+│ Transient │ Reward/   │ Knowledge │ Executable│  Identity   │
+│ Buffer    │ Emotion   │ Graph +   │ Skills +  │  + Stage    │
+│ (7±2)     │ Signals   │ Embeddings│ Evolution │  Tracking   │
+└───────────┴───────────┴───────────┴───────────┴─────────────┘
+                              │
+                    ┌─────────┴─────────┐
+                    │   Drive Manager   │
+                    │ (curiosity, etc.) │
+                    └───────────────────┘
+```
 
 ---
 

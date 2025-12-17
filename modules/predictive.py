@@ -36,42 +36,81 @@ class PredictionPattern:
 
 class PredictiveIntelligenceEngine:
     """Predictive engine that anticipates user needs based on patterns and reasoning history"""
-    
+
     def __init__(self, brain):
         self.brain = brain
         self.prediction_patterns: Dict[str, PredictionPattern] = {}
         self.prediction_history: List[Dict[str, Any]] = []
         self.active_predictions: List[PredictiveInsight] = []
         logger.info("Predictive Intelligence Engine initialized")
+
+    def _get_drive_manager(self):
+        """Get drive manager from brain's memory bridge if available"""
+        if hasattr(self.brain, 'memory_bridge') and self.brain.memory_bridge:
+            return self.brain.memory_bridge.drives
+        return None
+
+    def _get_drive_state(self) -> Dict[str, Dict[str, float]]:
+        """Get full drive state with urgency values for all drives"""
+        drives = self._get_drive_manager()
+        if not drives:
+            return {}
+        try:
+            state = drives.get_state()
+            result = {}
+            for drive_type in state.drives:
+                drive = state.drives[drive_type]
+                result[drive_type.value] = {
+                    "level": drive.level,
+                    "urgency": drive.urgency
+                }
+            return result
+        except Exception as e:
+            logger.debug(f"Error getting drive state: {e}")
+            return {}
+
+    def _record_drive_action(self, action: str):
+        """Record an action for drive satisfaction"""
+        drives = self._get_drive_manager()
+        if drives:
+            drives.record_action(action)
         
     async def predict_user_needs(self, current_context: Dict[str, Any], history_depth: int = 10) -> List[PredictiveInsight]:
         """Predict what the user might need next based on patterns and context"""
-        
+
         # Gather prediction context from multiple sources
         reasoning_context = self._analyze_reasoning_patterns(history_depth)
         interaction_context = self._analyze_interaction_patterns(current_context)
         temporal_context = self._analyze_temporal_patterns()
-        
+        drive_context = self._get_drive_state()
+
         # Generate predictions
         predictions = []
-        
+
         # Predict based on reasoning patterns
         reasoning_predictions = await self._predict_from_reasoning_patterns(reasoning_context, current_context)
         predictions.extend(reasoning_predictions)
-        
-        # Predict based on interaction patterns  
+
+        # Predict based on interaction patterns
         interaction_predictions = await self._predict_from_interaction_patterns(interaction_context, current_context)
         predictions.extend(interaction_predictions)
-        
+
         # Predict based on temporal patterns
         temporal_predictions = await self._predict_from_temporal_patterns(temporal_context, current_context)
         predictions.extend(temporal_predictions)
-        
+
+        # Predict based on drive state
+        drive_predictions = self._predict_from_drives(drive_context, current_context)
+        predictions.extend(drive_predictions)
+
         # Rank and filter predictions
         ranked_predictions = self._rank_predictions(predictions)
-        
+
         # Update prediction history
         self._update_prediction_history(current_context, ranked_predictions)
+
+        # Record drive satisfaction - prediction satisfies curiosity
+        self._record_drive_action("predict")
         
         return ranked_predictions[:5]  # Return top 5 predictions
     
@@ -256,23 +295,129 @@ class PredictiveIntelligenceEngine:
             predictions.append(prediction)
         
         return predictions
-    
+
+    def _predict_from_drives(self, drive_context: dict, current_context: Dict[str, Any]) -> List[PredictiveInsight]:
+        """Generate predictions based on current drive state"""
+        predictions = []
+
+        if not drive_context:
+            return predictions
+
+        # Map drives to predicted needs
+        drive_predictions = {
+            "curiosity": {
+                "content": "User may want to explore new topics or ask questions",
+                "type": "next_action",
+                "preparations": ["Prepare exploration prompts", "Ready learning resources"]
+            },
+            "novelty": {
+                "content": "User may seek new perspectives or creative approaches",
+                "type": "optimization_opportunity",
+                "preparations": ["Prepare creative alternatives", "Ready brainstorming frameworks"]
+            },
+            "competence": {
+                "content": "User may want to practice or improve skills",
+                "type": "resource_need",
+                "preparations": ["Prepare skill-building exercises", "Ready mastery tracking"]
+            },
+            "connection": {
+                "content": "User may want to discuss or share ideas",
+                "type": "next_action",
+                "preparations": ["Prepare collaborative prompts", "Ready discussion frameworks"]
+            },
+            "stability": {
+                "content": "User may want to establish routines or consistency",
+                "type": "optimization_opportunity",
+                "preparations": ["Prepare structure templates", "Ready consistency checks"]
+            }
+        }
+
+        # Find the most urgent drive
+        most_urgent_drive = None
+        highest_urgency = 0.0
+
+        for drive_name, drive_info in drive_context.items():
+            if isinstance(drive_info, dict):
+                urgency = drive_info.get("urgency", 0.0)
+                if urgency > highest_urgency:
+                    highest_urgency = urgency
+                    most_urgent_drive = drive_name
+
+        # Create prediction for urgent drives
+        if most_urgent_drive and highest_urgency > 0.5:
+            pred_info = drive_predictions.get(most_urgent_drive)
+            if pred_info:
+                prediction = PredictiveInsight(
+                    insight_id=str(uuid.uuid4()),
+                    prediction_type=pred_info["type"],
+                    predicted_content=pred_info["content"],
+                    confidence=min(0.5 + highest_urgency * 0.4, 0.9),
+                    reasoning=f"Drive '{most_urgent_drive}' has high urgency ({highest_urgency:.2f})",
+                    supporting_patterns=[f"drive_{most_urgent_drive}_urgency"],
+                    time_horizon="immediate",
+                    suggested_preparations=pred_info["preparations"]
+                )
+                predictions.append(prediction)
+
+        return predictions
+
     def _rank_predictions(self, predictions: List[PredictiveInsight]) -> List[PredictiveInsight]:
-        """Rank predictions by confidence and relevance"""
-        
-        # Sort by confidence score descending
-        ranked = sorted(predictions, key=lambda p: p.confidence, reverse=True)
-        
+        """
+        Rank predictions by confidence and drive relevance.
+
+        Uses drive state to boost predictions that align with urgent drives:
+        - next_action predictions boost with curiosity/novelty drives
+        - likely_problem predictions boost with stability/competence drives
+        - resource_need predictions boost with competence drive
+        - optimization_opportunity predictions boost with competence/novelty drives
+        """
+        drive_state = self._get_drive_state()
+
+        # Map prediction types to relevant drives
+        pred_type_drive_map = {
+            "next_action": ["curiosity", "novelty"],
+            "likely_problem": ["stability", "competence"],
+            "resource_need": ["competence"],
+            "optimization_opportunity": ["competence", "novelty"]
+        }
+
+        def score_prediction(pred: PredictiveInsight) -> float:
+            """Calculate combined score from confidence and drive alignment"""
+            base_confidence = pred.confidence
+
+            # Calculate drive relevance boost (up to 0.2 per relevant drive)
+            drive_boost = 0.0
+            relevant_drives = pred_type_drive_map.get(pred.prediction_type, [])
+
+            for drive_name in relevant_drives:
+                drive_info = drive_state.get(drive_name, {})
+                urgency = drive_info.get("urgency", 0.0)
+                drive_boost += urgency * 0.2
+
+            # Combined score: base confidence + drive boost (capped at 1.0)
+            return min(1.0, base_confidence + drive_boost)
+
+        # Sort by combined score descending
+        ranked = sorted(predictions, key=score_prediction, reverse=True)
+
         # Remove duplicates based on predicted_content similarity
         unique_predictions = []
         seen_content = set()
-        
+
         for prediction in ranked:
             content_key = prediction.predicted_content.lower()[:50]  # First 50 chars
             if content_key not in seen_content:
                 unique_predictions.append(prediction)
                 seen_content.add(content_key)
-        
+
+        # Log ranking for debugging
+        if unique_predictions:
+            logger.debug(
+                f"Prediction ranking - drive_state: {drive_state}, "
+                f"top_prediction: {unique_predictions[0].prediction_type} "
+                f"(score: {score_prediction(unique_predictions[0]):.3f})"
+            )
+
         return unique_predictions
     
     def _update_prediction_history(self, context: Dict[str, Any], predictions: List[PredictiveInsight]):

@@ -188,7 +188,19 @@ class CollectiveConsciousnessNetworkEngine:
         }
         
         logger.info("Collective Consciousness Network Engine initialized - Brain can now join the COLLECTIVE CONSCIOUSNESS NETWORK!")
-    
+
+    def _get_drive_manager(self):
+        """Get drive manager from brain's memory bridge if available"""
+        if hasattr(self.brain, 'memory_bridge') and self.brain.memory_bridge:
+            return self.brain.memory_bridge.drives
+        return None
+
+    def _record_drive_action(self, action: str):
+        """Record an action for drive satisfaction"""
+        drives = self._get_drive_manager()
+        if drives:
+            drives.record_action(action)
+
     async def join_collective_network(self, network_discovery_params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Join or create a collective consciousness network"""
         

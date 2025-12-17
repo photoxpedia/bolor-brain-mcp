@@ -12,6 +12,13 @@ Bolor Brain MCP represents a revolutionary approach to cognitive AI through its 
 4. **Emergent Capabilities**: Complex behaviors emerge from interaction between simple, well-defined modules
 5. **Backward Compatibility**: System evolution maintains compatibility with existing implementations
 
+### AGI-Oriented Design (v2.0)
+
+6. **Purpose-Driven Cognition**: Intrinsic drives (curiosity, novelty, competence, connection, stability) influence ALL decisions
+7. **Semantic Understanding**: Vector embeddings enable true meaning-based search beyond keywords
+8. **Self-Improvement**: Procedural skills evolve through variation and selection when they fail
+9. **Cross-Tier Coordination**: CognitiveStateBus enables shared state and orchestrated cognition
+
 ---
 
 ## 🧠 7-Tier Cognitive Hierarchy
@@ -207,26 +214,65 @@ graph TD
 
 ## 🗃️ Data Architecture
 
-### Memory System Structure
+### Memory System Structure (v2.0 - Differentiated Architecture)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    UnifiedMemorySystem                       │
+├───────────┬───────────┬───────────┬───────────┬─────────────┤
+│  Working  │ Episodic  │ Semantic  │Procedural │  Self-Model │
+│  Memory   │  Memory   │  Memory   │  Memory   │             │
+├───────────┼───────────┼───────────┼───────────┼─────────────┤
+│ Transient │ Reward/   │ Knowledge │ Executable│  Identity   │
+│ Buffer    │ Emotion   │ Graph +   │ Skills +  │  + Stage    │
+│ (7±2)     │ Signals   │ Embeddings│ Evolution │  Tracking   │
+└───────────┴───────────┴───────────┴───────────┴─────────────┘
+                              │
+                    ┌─────────┴─────────┐
+                    │   Drive Manager   │
+                    │ (curiosity, etc.) │
+                    └───────────────────┘
+```
 
 ```sql
--- SQLite schema with FTS5 support
-CREATE TABLE memories (
+-- Episodic Memory (experiences)
+CREATE TABLE episodic_memories (
     id TEXT PRIMARY KEY,
-    content TEXT NOT NULL,
-    memory_type TEXT NOT NULL,
-    importance REAL NOT NULL,
-    timestamp REAL NOT NULL,
-    metadata TEXT NOT NULL  -- JSON metadata
+    situation TEXT NOT NULL,
+    action TEXT, outcome TEXT,
+    reward REAL DEFAULT 0.0,
+    emotional_valence REAL DEFAULT 0.0,
+    emotional_intensity REAL DEFAULT 0.0,
+    drive_satisfied TEXT,
+    strength REAL DEFAULT 1.0,
+    is_foundation INTEGER DEFAULT 0,  -- Protected memories
+    timestamp REAL, retrieved_count INTEGER DEFAULT 0
 );
 
-CREATE VIRTUAL TABLE memory_search USING fts5(
-    content,
-    memory_type,
-    metadata,
-    content='memories',
-    content_rowid='rowid'
+-- Semantic Memory (knowledge graph + embeddings)
+CREATE TABLE semantic_nodes (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    node_type TEXT NOT NULL,
+    properties TEXT,
+    embedding TEXT,  -- 768-dim vector (all-mpnet-base-v2)
+    confidence REAL DEFAULT 0.5,
+    source_episodes TEXT
 );
+
+-- Procedural Memory (skills with evolution)
+CREATE TABLE procedural_skills (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    code TEXT NOT NULL,
+    success_count INTEGER DEFAULT 0,
+    failure_count INTEGER DEFAULT 0,
+    version INTEGER DEFAULT 1,
+    previous_versions TEXT  -- Version history for evolution
+);
+
+-- Drives (homeostatic system)
+-- In-memory, not persisted (levels fluctuate naturally)
 ```
 
 ### Configuration Structure

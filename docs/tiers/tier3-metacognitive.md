@@ -1,6 +1,6 @@
 # Tier 3: Meta-Cognitive Intelligence 🔍
 
-The Meta-Cognitive Intelligence tier provides self-reflective optimization capabilities, enabling the system to monitor, analyze, and improve its own cognitive performance across all tiers.
+The Meta-Cognitive Intelligence tier provides self-reflective optimization capabilities, enabling the system to monitor, analyze, and improve its own cognitive performance across all tiers. In v2.0, it also serves as the **Cognitive Coordinator** for cross-tier orchestration.
 
 ## 🎯 Overview
 
@@ -13,6 +13,53 @@ The Meta-Cognitive Intelligence Engine (`modules/metacognitive.py`) implements a
 - **Self-Diagnostic Analysis**: Automated detection of performance issues
 - **Cognitive State Management**: Monitoring and adjustment of mental states
 - **Performance Prediction**: Forecasting cognitive effectiveness
+
+### 🆕 Cognitive Coordinator (v2.0)
+- **CognitiveStateBus**: Shared state for cross-tier communication
+- **Drive-Informed Optimization**: Priority based on performance gap + drive urgency
+- **Dynamic Adaptation Parameters**: Thresholds adjust based on drive state
+- **Tier Orchestration**: Coordinates reasoning, prediction, and evolution tiers
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                  MetaCognitive Coordinator                    │
+├──────────────────────────────────────────────────────────────┤
+│  CognitiveStateBus (shared state)                            │
+│  ├── active_problem, problem_domain                          │
+│  ├── drive_snapshot, dominant_drive                          │
+│  ├── reasoning_conclusion, reasoning_confidence              │
+│  ├── predictions_active, prediction_confidence               │
+│  └── evolution_generation, creative_insights                 │
+├──────────────────────────────────────────────────────────────┤
+│  Coordinator Methods                                          │
+│  ├── coordinate_cognitive_cycle()  -- Orchestrates tiers     │
+│  ├── _determine_tier_involvement() -- Selects active tiers   │
+│  ├── _update_drive_snapshot()      -- Caches drive state     │
+│  └── report_tier_output()          -- Receives tier results  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Example: Coordinated Cognitive Cycle
+
+```python
+# Coordinate all cognitive tiers for a complex problem
+result = await brain.meta_cognitive.coordinate_cognitive_cycle(
+    problem="How will quantum computing affect cryptography?",
+    context={"domain": "technology"}
+)
+
+# Result contains coordinated outputs from all relevant tiers
+print(result["tiers_involved"])          # ['reasoning', 'prediction']
+print(result["reasoning_result"])        # Reasoning chain conclusion
+print(result["prediction_result"])       # Future predictions
+print(result["synthesis"])               # Synthesized conclusion
+
+# Access shared state bus
+state = brain.meta_cognitive.get_state_bus()
+print(state.dominant_drive)              # Most urgent drive
+print(state.reasoning_confidence)        # Confidence from reasoning
+print(state.performance_trend)           # 'improving', 'stable', or 'declining'
+```
 
 ---
 

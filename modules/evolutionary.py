@@ -169,7 +169,75 @@ class EvolutionaryCognitiveIntelligenceEngine:
         }
         
         logger.info("Evolutionary Cognitive Intelligence Engine initialized - Brain can now EVOLVE, CREATE, FEEL, and TRANSCEND!")
-    
+
+    def _get_drive_manager(self):
+        """Get drive manager from brain's memory bridge if available"""
+        if hasattr(self.brain, 'memory_bridge') and self.brain.memory_bridge:
+            return self.brain.memory_bridge.drives
+        return None
+
+    def _get_drive_state(self) -> Dict[str, Dict[str, float]]:
+        """Get full drive state with urgency values for all drives"""
+        drives = self._get_drive_manager()
+        if not drives:
+            return {}
+        try:
+            state = drives.get_state()
+            result = {}
+            for drive_type in state.drives:
+                drive = state.drives[drive_type]
+                result[drive_type.value] = {
+                    "level": drive.level,
+                    "urgency": drive.urgency
+                }
+            return result
+        except Exception as e:
+            logger.debug(f"Error getting drive state: {e}")
+            return {}
+
+    def _record_drive_action(self, action: str):
+        """Record an action for drive satisfaction"""
+        drives = self._get_drive_manager()
+        if drives:
+            drives.record_action(action)
+
+    def _select_drive_aligned_traits(self) -> List[str]:
+        """
+        Select traits to evolve based on drive urgency.
+
+        Returns a list of gene categories that should be prioritized for evolution
+        based on which drives are most urgent.
+        """
+        drive_state = self._get_drive_state()
+        if not drive_state:
+            # No drive state - return default traits
+            return ["reasoning_genes", "prediction_genes", "meta_genes"]
+
+        # Map drives to gene categories they benefit from evolving
+        drive_to_genes = {
+            "curiosity": ["creative_genes", "meta_genes", "reasoning_genes"],
+            "novelty": ["creative_genes", "transcendent_genes"],
+            "competence": ["reasoning_genes", "prediction_genes", "meta_genes"],
+            "connection": ["emotional_genes"],
+            "stability": ["reasoning_genes", "meta_genes", "prediction_genes"]
+        }
+
+        # Weight genes by drive urgency
+        gene_scores: Dict[str, float] = {}
+        for drive_name, genes in drive_to_genes.items():
+            drive_info = drive_state.get(drive_name, {})
+            urgency = drive_info.get("urgency", 0.0)
+
+            for gene in genes:
+                gene_scores[gene] = gene_scores.get(gene, 0.0) + urgency
+
+        # Sort genes by score and return top 3
+        sorted_genes = sorted(gene_scores.items(), key=lambda x: x[1], reverse=True)
+
+        logger.debug(f"Drive-aligned trait selection: {sorted_genes[:3]}")
+
+        return [gene for gene, score in sorted_genes[:3]]
+
     async def evolve_cognitive_capabilities(self) -> Dict[str, Any]:
         """Evolve the brain's cognitive capabilities using evolutionary algorithms"""
         
@@ -418,41 +486,98 @@ class EvolutionaryCognitiveIntelligenceEngine:
         return fitness_scores
     
     async def _apply_genetic_evolution(self, fitness_scores: Dict[str, float]) -> List[CognitiveEvolution]:
-        """Apply genetic algorithm-style evolution to cognitive capabilities"""
+        """
+        Apply genetic algorithm-style evolution to cognitive capabilities.
+
+        Evolution is influenced by BOTH:
+        1. Fitness scores (traits with low scores need improvement)
+        2. Drive state (evolve traits aligned with urgent drives)
+
+        This creates intelligent, purpose-driven evolution.
+        """
         evolutions = []
-        
+
+        # Get drive-aligned traits (gene categories prioritized by drive urgency)
+        drive_aligned_genes = self._select_drive_aligned_traits()
+
         # Select traits for evolution based on fitness
         weak_traits = [trait for trait, score in fitness_scores.items() if score < 0.7]
-        
-        for trait in weak_traits[:3]:  # Evolve top 3 weakest traits
-            # Create evolution through "genetic mutation"
-            parent_genes = self.cognitive_genome.get(f"{trait}_genes", [])
+
+        # Combine: prioritize drive-aligned genes, but also include weak traits
+        evolution_targets = []
+
+        # First, add drive-aligned genes (up to 2)
+        for gene_category in drive_aligned_genes[:2]:
+            if gene_category in self.cognitive_genome:
+                # Extract trait name from gene category (e.g., "creative_genes" -> "creative")
+                trait = gene_category.replace("_genes", "")
+                evolution_targets.append((gene_category, trait, "drive_aligned"))
+
+        # Then add weak traits that aren't already targeted (up to 1)
+        for trait in weak_traits[:1]:
+            gene_category = f"{trait}_genes"
+            if (gene_category, trait, "drive_aligned") not in evolution_targets:
+                evolution_targets.append((gene_category, trait, "fitness_based"))
+
+        for gene_category, trait, evolution_reason in evolution_targets:
+            parent_genes = self.cognitive_genome.get(gene_category, [])
+
             if len(parent_genes) > 1:
                 # Combine two parent genes to create offspring
                 gene1, gene2 = random.sample(parent_genes, 2)
                 new_gene = f"evolved_{gene1}_{gene2}_{self.evolution_generations}"
-                
+
+                # Calculate mutation strength based on reason
+                mutation_strength = 0.4 if evolution_reason == "drive_aligned" else 0.3
+
                 evolution = CognitiveEvolution(
                     evolution_id=f"genetic_{uuid.uuid4().hex[:12]}",
                     evolution_type="genetic_algorithm",
                     target_system=trait,
-                    evolution_description=f"Genetic combination of {gene1} and {gene2} for improved {trait}",
+                    evolution_description=f"Genetic combination of {gene1} and {gene2} for improved {trait} ({evolution_reason})",
                     fitness_score=fitness_scores.get(trait, 0.5) + 0.1,
                     generation=self.evolution_generations,
                     parent_evolutions=[gene1, gene2],
-                    mutation_strength=0.3,
+                    mutation_strength=mutation_strength,
                     survival_rate=0.8,
                     emergent_capabilities=[f"enhanced_{trait}_processing"]
                 )
-                
+
                 # Add new gene to genome
-                if f"{trait}_genes" not in self.cognitive_genome:
-                    self.cognitive_genome[f"{trait}_genes"] = []
-                self.cognitive_genome[f"{trait}_genes"].append(new_gene)
-                
+                if gene_category not in self.cognitive_genome:
+                    self.cognitive_genome[gene_category] = []
+                self.cognitive_genome[gene_category].append(new_gene)
+
                 evolutions.append(evolution)
-        
+
+            elif len(parent_genes) == 0 and evolution_reason == "drive_aligned":
+                # Bootstrap new gene category if drive-aligned but empty
+                new_gene = f"seed_{trait}_{self.evolution_generations}"
+
+                evolution = CognitiveEvolution(
+                    evolution_id=f"genetic_{uuid.uuid4().hex[:12]}",
+                    evolution_type="genetic_algorithm",
+                    target_system=trait,
+                    evolution_description=f"Seeding new {trait} capability (drive-aligned bootstrap)",
+                    fitness_score=0.5,
+                    generation=self.evolution_generations,
+                    parent_evolutions=["drive_urgency_bootstrap"],
+                    mutation_strength=0.5,
+                    survival_rate=0.7,
+                    emergent_capabilities=[f"new_{trait}_capability"]
+                )
+
+                if gene_category not in self.cognitive_genome:
+                    self.cognitive_genome[gene_category] = []
+                self.cognitive_genome[gene_category].append(new_gene)
+
+                evolutions.append(evolution)
+
         self.cognitive_evolution_history.extend(evolutions)
+
+        # Record drive satisfaction for evolution
+        self._record_drive_action("evolve")
+
         return evolutions
     
     async def _apply_adaptive_mutations(self, fitness_scores: Dict[str, float]) -> List[CognitiveEvolution]:

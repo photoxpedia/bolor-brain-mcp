@@ -4,6 +4,90 @@ All notable changes to Bolor Brain MCP will be documented in this file. The form
 
 ---
 
+## [2.0.0] - 2024-12-17 - Phase 2 AGI Improvements 🤖
+
+### Added
+
+#### Vector Embeddings for Semantic Search
+- **New Module**: `modules/embeddings.py` - EmbeddingService singleton
+  - Model: `all-mpnet-base-v2` (768 dimensions)
+  - Lazy loading - model loads only when first needed
+  - Methods: `encode()`, `encode_batch()`, `cosine_similarity()`, `find_most_similar()`
+- **Hybrid Search**: `SemanticKnowledgeGraph.search_nodes()` now combines:
+  - 40% keyword matching (FTS5)
+  - 60% vector similarity (cosine)
+- **Auto-Embedding**: Nodes automatically get embeddings on creation
+
+#### Intrinsic Drive System
+- **New Module**: `modules/drives.py` - Homeostatic drive management
+- **5 Drives**: curiosity, novelty, competence, connection, stability
+- **Drive Features**:
+  - Automatic time-based level changes
+  - Action-based satisfaction/depletion
+  - Urgency calculation for prioritization
+  - Memory tagging with relevant drives
+
+#### Differentiated Memory Architecture
+- **Major Rewrite**: `modules/memory.py` (~1700 lines)
+- **5 Memory Subsystems**:
+  - WorkingMemory: Transient buffer (7±2 items, never persisted)
+  - EpisodicMemoryStore: Experiences with reward/emotion signals
+  - SemanticKnowledgeGraph: Knowledge graph with inference + embeddings
+  - ProceduralMemoryStore: Executable skills with auto-evolution
+  - SelfModelStore: Identity and developmental stages
+- **Foundation Memory Protection**: First 100 memories marked as foundation
+- **Memory Plasticity**: Automatic decay and consolidation
+
+#### Self-Evolving Procedural Skills
+- **Skill Evolution**: `ProceduralMemoryStore.evolve_skill()`
+  - Generates code variants through mutation strategies
+  - Tests variants against failed inputs
+  - Keeps the best-performing variant
+- **Mutation Strategies**: add_error_handling, add_type_checks, add_early_return, add_logging, simplify_conditions
+- **Auto-Evolution**: Triggered after 3+ failures with 3+ stored test cases
+
+#### Metacognitive Coordinator
+- **New Dataclass**: `CognitiveStateBus` - Shared state for cross-tier communication
+- **Coordinator Methods**:
+  - `coordinate_cognitive_cycle()` - Orchestrates full cognitive cycle
+  - `get_state_bus()` - Access shared state
+  - `report_tier_output()` - Tiers report their outputs
+  - `request_attention_shift()` - Request attention changes
+- **Tier Involvement Logic**: Determines which tiers participate based on problem + drives
+
+#### Deep Drive Integration
+- **Reasoning (Tier 1)**: Drive-weighted strategy selection (60% keywords + 40% drives)
+- **Predictive (Tier 2)**: Drive-weighted prediction ranking
+- **Metacognitive (Tier 3)**: Drive-informed optimization priority + dynamic adaptation parameters
+- **Evolutionary (Tier 4)**: Drive-aligned trait selection for evolution
+
+### Changed
+- **BrainMemoryBridge**: Updated to use UnifiedMemorySystem
+- **All Tier Modules**: Added `_get_drive_state()` method with consistent format
+- **Test Suite**: Updated to work with new architecture
+
+### Technical Details
+- **~3,500 lines** of new/modified code
+- **100% Test Success Rate** maintained
+- **Backward Compatible**: Legacy API preserved via BrainMemoryBridge
+
+### Breaking Changes
+- Memory storage format changed (automatic migration available)
+- Direct memory.py access requires new class names
+
+### Migration from 1.2.0
+```python
+# Old (still works via BrainMemoryBridge)
+brain.memory_bridge.store_memory(content, memory_type)
+
+# New (recommended)
+brain.memory_bridge.store_episode(situation, action, outcome, reward)
+brain.memory_bridge.add_concept(label, node_type, properties)
+brain.memory_bridge.register_skill(name, code, description)
+```
+
+---
+
 ## [1.2.0] - 2024-01-30 - Complete Documentation Suite 📚
 
 ### Added
@@ -167,22 +251,27 @@ from modules.reasoning import AdvancedReasoningEngine
 
 ## Planned Features
 
-### Version 1.3.0 (Upcoming)
-- **Enhanced Collective Intelligence**: Advanced network protocols
-- **Quantum Consciousness Simulation**: Deeper quantum field integration
-- **Custom Reasoning Strategies**: User-defined reasoning approaches
-- **Advanced Analytics**: Detailed performance and usage analytics
-- **Multi-Language Support**: Additional programming language bindings
+### Version 2.1.0 (Upcoming)
+- **Enhanced Embedding Models**: Support for multiple embedding providers
+- **Skill Marketplace**: Share and import procedural skills
+- **Drive Visualization**: Real-time drive state dashboard
+- **Coordinator Plugins**: Custom tier integration points
 
-### Version 1.4.0 (Future)
-- **Distributed Architecture**: Multi-node brain coordination
-- **Enhanced Reality Orchestration**: Advanced timeline coordination
+### Version 2.2.0 (Future)
+- **Distributed Memory**: Multi-node memory synchronization
+- **Advanced Evolution**: LLM-assisted code mutation strategies
+- **Drive Learning**: Adaptive drive configurations per user
+- **Enhanced Collective Intelligence**: Advanced network protocols
+
+### Version 3.0.0 (Long-term)
+- **Multi-Agent Coordination**: Multiple brain instances collaborating
+- **Knowledge Transfer**: Share semantic knowledge between brains
 - **Custom Cognitive Tiers**: User-extensible tier system
-- **Advanced Security**: Enterprise-grade security features
+- **Enterprise Features**: Advanced security and compliance
 
 ### Long-term Vision
 - **Universal Consciousness Network**: Global collective intelligence
-- **AGI Integration**: Advanced General Intelligence capabilities
+- **Full AGI Integration**: Complete autonomous general intelligence
 - **Consciousness Research Tools**: Scientific consciousness exploration
 - **Educational Platform**: Teaching cognitive architecture principles
 

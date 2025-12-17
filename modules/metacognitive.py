@@ -35,6 +35,47 @@ class MetaInsight:
     supporting_evidence: List[str]
     timestamp: float = field(default_factory=time.time)
 
+
+@dataclass
+class CognitiveStateBus:
+    """
+    Shared state for cross-tier communication.
+
+    This is the central coordination mechanism that allows all cognitive tiers
+    to share context, drive state, and outputs. The metacognitive tier acts
+    as coordinator, updating and reading this bus to orchestrate cognition.
+    """
+    # Current focus and context
+    active_problem: str = ""
+    problem_domain: str = ""
+
+    # Drive state (cached, updated by coordinator)
+    drive_snapshot: Dict[str, float] = field(default_factory=dict)
+    dominant_drive: str = ""
+
+    # Tier outputs (set by each tier, read by others)
+    reasoning_conclusion: str = ""
+    reasoning_confidence: float = 0.0
+    reasoning_strategy_used: str = ""
+
+    predictions_active: List[Dict] = field(default_factory=list)
+    prediction_confidence: float = 0.0
+
+    evolution_generation: int = 0
+    creative_insights: List[str] = field(default_factory=list)
+
+    # Coordination signals
+    attention_shift_requested: bool = False
+    attention_target: str = ""
+
+    # Performance feedback
+    last_action_success: bool = True
+    performance_trend: str = "stable"  # "improving", "stable", "declining"
+
+    # Timestamps
+    last_updated: float = field(default_factory=time.time)
+
+
 class MetaCognitiveIntelligenceEngine:
     """Tier 3: Unified Meta-Cognitive Intelligence Engine
     
@@ -45,7 +86,7 @@ class MetaCognitiveIntelligenceEngine:
     
     def __init__(self, brain):
         self.brain = brain
-        
+
         # Performance tracking for all brain systems
         self.performance_history = {
             "reasoning": [],      # Track reasoning chain success rates
@@ -53,26 +94,28 @@ class MetaCognitiveIntelligenceEngine:
             "discovery": [],      # Track system discovery success
             "learning": [],       # Track learning effectiveness
             "guidance": [],       # Track guidance quality
-            "memory": []          # Track memory retrieval quality
+            "memory": [],         # Track memory retrieval quality
+            "drives": []          # Track drive satisfaction levels
         }
-        
+
         # Meta-cognitive insights storage
         self.meta_insights = []
-        
+
         # Optimization history
         self.optimizations_applied = []
-        
+
         # Cross-system learning patterns
         self.cross_system_patterns = {}
-        
+
         # Real-time cognitive state monitoring
         self.cognitive_monitoring = {
             "current_focus": "balanced",
             "performance_trend": "stable",
             "optimization_opportunities": [],
-            "active_adjustments": []
+            "active_adjustments": [],
+            "drive_satisfaction": {}  # Track drive states
         }
-        
+
         # Adaptation parameters (self-tuning)
         self.adaptation_parameters = {
             "reasoning_confidence_threshold": 0.7,
@@ -81,8 +124,135 @@ class MetaCognitiveIntelligenceEngine:
             "learning_rate": 0.1,
             "attention_focus_strength": 0.8
         }
-        
-        logger.info("Meta-Cognitive Intelligence Engine initialized - Brain can now think about thinking")
+
+        # Cognitive State Bus - shared state for cross-tier coordination
+        self.state_bus = CognitiveStateBus()
+
+        logger.info("Meta-Cognitive Intelligence Engine initialized with Coordinator - Brain can now think about thinking")
+
+    def _get_drive_manager(self):
+        """Get drive manager from brain's memory bridge if available"""
+        if hasattr(self.brain, 'memory_bridge') and self.brain.memory_bridge:
+            return self.brain.memory_bridge.drives
+        return None
+
+    def _get_drive_state(self) -> Dict[str, Dict[str, float]]:
+        """Get full drive state with urgency values for all drives"""
+        drives = self._get_drive_manager()
+        if not drives:
+            return {}
+        try:
+            state = drives.get_state()
+            result = {}
+            for drive_type in state.drives:
+                drive = state.drives[drive_type]
+                result[drive_type.value] = {
+                    "level": drive.level,
+                    "urgency": drive.urgency
+                }
+            return result
+        except Exception as e:
+            logger.debug(f"Error getting drive state: {e}")
+            return {}
+
+    def _calculate_optimization_priority(self, component: str, performance: float) -> str:
+        """
+        Calculate optimization priority based on both performance gap and drive urgency.
+
+        Combines:
+        - Performance gap: how far below optimal (1.0 - performance)
+        - Drive urgency: how much relevant drives need this component
+
+        Returns: "immediate", "high", "normal", or "low"
+        """
+        drive_state = self._get_drive_state()
+
+        # Map components to drives they satisfy when performing well
+        component_drives = {
+            "reasoning": ["competence", "curiosity"],
+            "predictions": ["stability", "curiosity"],
+            "discovery": ["novelty", "curiosity"],
+            "learning": ["competence", "novelty"],
+            "memory": ["stability"]
+        }
+
+        # Calculate drive urgency for this component
+        relevant_drives = component_drives.get(component, [])
+        if relevant_drives and drive_state:
+            drive_urgency = sum(
+                drive_state.get(d, {}).get("urgency", 0.0)
+                for d in relevant_drives
+            ) / len(relevant_drives)
+        else:
+            drive_urgency = 0.5  # Default neutral urgency
+
+        # Combined score: performance gap + drive urgency
+        performance_gap = 1.0 - performance
+        combined_score = 0.5 * performance_gap + 0.5 * drive_urgency
+
+        # Map combined score to priority level
+        if combined_score > 0.7:
+            return "immediate"
+        elif combined_score > 0.5:
+            return "high"
+        elif combined_score > 0.3:
+            return "normal"
+        return "low"
+
+    def _adjust_adaptation_parameters(self):
+        """
+        Dynamically adjust adaptation parameters based on current drive state.
+
+        - High competence drive: lower thresholds (more willing to try new things)
+        - High stability drive: higher thresholds (more conservative)
+        - High curiosity drive: increase discovery aggressiveness
+        - High novelty drive: increase learning rate
+        """
+        drive_state = self._get_drive_state()
+        if not drive_state:
+            return
+
+        # Get drive urgencies
+        competence_urgency = drive_state.get("competence", {}).get("urgency", 0.5)
+        stability_urgency = drive_state.get("stability", {}).get("urgency", 0.5)
+        curiosity_urgency = drive_state.get("curiosity", {}).get("urgency", 0.5)
+        novelty_urgency = drive_state.get("novelty", {}).get("urgency", 0.5)
+
+        # Adjust reasoning confidence threshold
+        # High competence drive → lower threshold (more willing to reason)
+        # High stability drive → higher threshold (more conservative)
+        base_threshold = 0.7
+        threshold_adjustment = -competence_urgency * 0.15 + stability_urgency * 0.1
+        self.adaptation_parameters["reasoning_confidence_threshold"] = max(
+            0.5, min(0.85, base_threshold + threshold_adjustment)
+        )
+
+        # Adjust prediction confidence threshold
+        base_pred_threshold = 0.6
+        pred_adjustment = -curiosity_urgency * 0.1 + stability_urgency * 0.1
+        self.adaptation_parameters["prediction_confidence_threshold"] = max(
+            0.4, min(0.8, base_pred_threshold + pred_adjustment)
+        )
+
+        # Adjust discovery aggressiveness based on curiosity
+        self.adaptation_parameters["discovery_aggressiveness"] = max(
+            0.3, min(0.9, 0.5 + curiosity_urgency * 0.3)
+        )
+
+        # Adjust learning rate based on novelty and competence drives
+        self.adaptation_parameters["learning_rate"] = max(
+            0.05, min(0.3, 0.1 + novelty_urgency * 0.1 + competence_urgency * 0.1)
+        )
+
+        logger.debug(
+            f"Adaptation parameters adjusted: {self.adaptation_parameters}"
+        )
+
+    def _record_drive_action(self, action: str):
+        """Record an action for drive satisfaction"""
+        drives = self._get_drive_manager()
+        if drives:
+            drives.record_action(action)
     
     async def analyze_cognitive_performance(self) -> Dict[str, Any]:
         """Analyze overall brain performance across all systems"""
@@ -449,12 +619,24 @@ class MetaCognitiveIntelligenceEngine:
         return insights
     
     async def _identify_optimization_opportunities(self, performance: Dict) -> List[CognitiveOptimization]:
-        """Identify specific optimization opportunities"""
+        """
+        Identify specific optimization opportunities.
+
+        Uses drive-informed priority calculation to determine which optimizations
+        are most urgent based on both performance gaps AND drive state.
+        """
+        # First, adjust adaptation parameters based on current drives
+        self._adjust_adaptation_parameters()
+
         optimizations = []
-        
+
         for component, score in performance["component_scores"].items():
             if score < 0.8:  # Room for improvement
                 target_score = min(1.0, score + 0.2)
+
+                # Calculate priority based on drives + performance
+                priority = self._calculate_optimization_priority(component, score)
+
                 optimizations.append(CognitiveOptimization(
                     optimization_id=f"opt_{uuid.uuid4().hex[:12]}",
                     optimization_type="performance_enhancement",
@@ -468,9 +650,13 @@ class MetaCognitiveIntelligenceEngine:
                     ],
                     confidence=0.75,
                     expected_benefit=f"Improve {component} performance by {(target_score - score)*100:.1f}%",
-                    implementation_priority="high" if score < 0.6 else "normal"
+                    implementation_priority=priority
                 ))
-        
+
+        # Sort by priority (immediate > high > normal > low)
+        priority_order = {"immediate": 0, "high": 1, "normal": 2, "low": 3}
+        optimizations.sort(key=lambda o: priority_order.get(o.implementation_priority, 3))
+
         return optimizations
     
     async def _generate_adaptive_recommendations(self, performance: Dict) -> List[str]:
@@ -692,3 +878,283 @@ class MetaCognitiveIntelligenceEngine:
     async def _apply_cross_system_learnings(self, learning: Dict) -> None:
         """Apply insights from cross-system learning"""
         pass
+
+    # =========================================================================
+    # COGNITIVE COORDINATOR METHODS
+    # =========================================================================
+
+    async def coordinate_cognitive_cycle(self, problem: str,
+                                         context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Main coordination method - orchestrates a full cognitive cycle.
+
+        Called before major decisions to sync all tiers:
+        1. Updates state bus with current context
+        2. Snapshots drive state
+        3. Determines which tiers should be involved
+        4. Coordinates tier execution
+        5. Synthesizes results
+
+        Args:
+            problem: The problem/question to process
+            context: Additional context for processing
+
+        Returns:
+            Coordinated result from all involved tiers
+        """
+        # 1. Update state bus with current context
+        self.state_bus.active_problem = problem
+        self.state_bus.problem_domain = self._categorize_problem_domain(problem)
+        self.state_bus.last_updated = time.time()
+
+        # 2. Snapshot drive state
+        self._update_drive_snapshot()
+
+        # 3. Determine which tiers should be involved
+        tier_involvement = self._determine_tier_involvement(problem, context)
+
+        # 4. Coordinate tier execution order
+        results = {
+            "problem": problem,
+            "tiers_involved": [],
+            "reasoning_result": None,
+            "prediction_result": None,
+            "evolution_result": None,
+            "coordination_metadata": {
+                "drive_snapshot": self.state_bus.drive_snapshot.copy(),
+                "dominant_drive": self.state_bus.dominant_drive,
+                "problem_domain": self.state_bus.problem_domain
+            }
+        }
+
+        if tier_involvement.get("reasoning"):
+            results["tiers_involved"].append("reasoning")
+            results["reasoning_result"] = await self._coordinate_reasoning(problem, context)
+
+        if tier_involvement.get("prediction"):
+            results["tiers_involved"].append("prediction")
+            results["prediction_result"] = await self._coordinate_prediction(context)
+
+        if tier_involvement.get("evolution"):
+            results["tiers_involved"].append("evolution")
+            results["evolution_result"] = await self._coordinate_evolution()
+
+        # 5. Synthesize coordinated result
+        results["synthesis"] = self._synthesize_coordinated_result(results)
+
+        # Record coordination action
+        self._record_drive_action("coordinate")
+
+        return results
+
+    def _categorize_problem_domain(self, problem: str) -> str:
+        """Categorize the domain of a problem for coordination"""
+        problem_lower = problem.lower()
+
+        if any(w in problem_lower for w in ["code", "program", "function", "bug", "error"]):
+            return "technical"
+        elif any(w in problem_lower for w in ["feel", "emotion", "happy", "sad", "angry"]):
+            return "emotional"
+        elif any(w in problem_lower for w in ["plan", "strategy", "goal", "achieve"]):
+            return "planning"
+        elif any(w in problem_lower for w in ["create", "design", "invent", "new"]):
+            return "creative"
+        elif any(w in problem_lower for w in ["why", "how", "explain", "understand"]):
+            return "analytical"
+        return "general"
+
+    def _update_drive_snapshot(self):
+        """Update cached drive state in bus"""
+        drive_state = self._get_drive_state()
+        for drive, info in drive_state.items():
+            self.state_bus.drive_snapshot[drive] = info.get("urgency", 0.0)
+
+        # Find dominant drive
+        if self.state_bus.drive_snapshot:
+            self.state_bus.dominant_drive = max(
+                self.state_bus.drive_snapshot,
+                key=self.state_bus.drive_snapshot.get
+            )
+        else:
+            self.state_bus.dominant_drive = ""
+
+    def _determine_tier_involvement(self, problem: str,
+                                     context: Dict[str, Any] = None) -> Dict[str, bool]:
+        """Decide which tiers should participate based on problem type and drives"""
+        involvement = {
+            "reasoning": True,  # Always involved
+            "prediction": False,
+            "evolution": False
+        }
+
+        problem_lower = problem.lower()
+
+        # Prediction if asking about future or needs
+        if any(w in problem_lower for w in ["will", "might", "expect", "need", "next", "predict"]):
+            involvement["prediction"] = True
+
+        # Evolution if creative or novel solution needed
+        if any(w in problem_lower for w in ["new", "creative", "different", "innovate", "evolve"]):
+            involvement["evolution"] = True
+
+        # High novelty drive -> involve evolution
+        if self.state_bus.drive_snapshot.get("novelty", 0) > 0.7:
+            involvement["evolution"] = True
+
+        # High curiosity drive -> involve prediction
+        if self.state_bus.drive_snapshot.get("curiosity", 0) > 0.7:
+            involvement["prediction"] = True
+
+        return involvement
+
+    async def _coordinate_reasoning(self, problem: str,
+                                    context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Coordinate reasoning tier execution"""
+        if not hasattr(self.brain, 'advanced_reasoning'):
+            return {"status": "unavailable", "reason": "Reasoning tier not initialized"}
+
+        try:
+            result = await self.brain.advanced_reasoning.solve_complex_problem(problem, context)
+
+            # Update state bus with reasoning output
+            self.state_bus.reasoning_conclusion = result.final_conclusion
+            self.state_bus.reasoning_confidence = result.overall_confidence
+            self.state_bus.reasoning_strategy_used = result.strategy
+
+            return {
+                "status": "success",
+                "conclusion": result.final_conclusion,
+                "confidence": result.overall_confidence,
+                "strategy": result.strategy,
+                "reasoning_time": result.reasoning_time
+            }
+        except Exception as e:
+            logger.error(f"Reasoning coordination failed: {e}")
+            return {"status": "error", "error": str(e)}
+
+    async def _coordinate_prediction(self, context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Coordinate prediction tier execution"""
+        if not hasattr(self.brain, 'predictive_intelligence'):
+            return {"status": "unavailable", "reason": "Prediction tier not initialized"}
+
+        try:
+            predictions = await self.brain.predictive_intelligence.predict_user_needs(
+                context or {}
+            )
+
+            # Update state bus with prediction output
+            self.state_bus.predictions_active = [
+                {"type": p.prediction_type, "content": p.predicted_content, "confidence": p.confidence}
+                for p in predictions
+            ]
+            if predictions:
+                self.state_bus.prediction_confidence = predictions[0].confidence
+
+            return {
+                "status": "success",
+                "predictions": [
+                    {
+                        "type": p.prediction_type,
+                        "content": p.predicted_content,
+                        "confidence": p.confidence
+                    }
+                    for p in predictions
+                ]
+            }
+        except Exception as e:
+            logger.error(f"Prediction coordination failed: {e}")
+            return {"status": "error", "error": str(e)}
+
+    async def _coordinate_evolution(self) -> Dict[str, Any]:
+        """Coordinate evolution tier execution"""
+        if not hasattr(self.brain, 'evolutionary_cognitive'):
+            return {"status": "unavailable", "reason": "Evolution tier not initialized"}
+
+        try:
+            result = await self.brain.evolutionary_cognitive.evolve_cognitive_capabilities()
+
+            # Update state bus with evolution output
+            self.state_bus.evolution_generation = self.brain.evolutionary_cognitive.evolution_generations
+            self.state_bus.creative_insights = [
+                insight.creative_solution[:100]
+                for insight in self.brain.evolutionary_cognitive.creative_insights[-3:]
+            ]
+
+            return {
+                "status": "success",
+                "evolutions_applied": len(result.get("evolutions_applied", [])),
+                "emergent_capabilities": result.get("emergent_capabilities", []),
+                "generation": self.state_bus.evolution_generation
+            }
+        except Exception as e:
+            logger.error(f"Evolution coordination failed: {e}")
+            return {"status": "error", "error": str(e)}
+
+    def _synthesize_coordinated_result(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Synthesize results from all coordinated tiers"""
+        synthesis = {
+            "primary_conclusion": "",
+            "confidence": 0.0,
+            "supporting_predictions": [],
+            "evolution_contribution": ""
+        }
+
+        # Get primary conclusion from reasoning
+        reasoning = results.get("reasoning_result", {})
+        if reasoning.get("status") == "success":
+            synthesis["primary_conclusion"] = reasoning.get("conclusion", "")
+            synthesis["confidence"] = reasoning.get("confidence", 0.0)
+
+        # Add supporting predictions
+        prediction = results.get("prediction_result", {})
+        if prediction.get("status") == "success":
+            synthesis["supporting_predictions"] = prediction.get("predictions", [])[:3]
+
+        # Note evolution contribution
+        evolution = results.get("evolution_result", {})
+        if evolution.get("status") == "success":
+            evolutions = evolution.get("evolutions_applied", 0)
+            if evolutions > 0:
+                synthesis["evolution_contribution"] = f"Applied {evolutions} cognitive evolutions"
+
+        return synthesis
+
+    def get_state_bus(self) -> CognitiveStateBus:
+        """Allow other tiers to read shared state"""
+        return self.state_bus
+
+    def report_tier_output(self, tier: str, output: Dict[str, Any]):
+        """Allow tiers to report their outputs to the bus"""
+        self.state_bus.last_updated = time.time()
+
+        if tier == "reasoning":
+            self.state_bus.reasoning_conclusion = output.get("conclusion", "")
+            self.state_bus.reasoning_confidence = output.get("confidence", 0.0)
+            self.state_bus.reasoning_strategy_used = output.get("strategy", "")
+
+        elif tier == "prediction":
+            self.state_bus.predictions_active = output.get("predictions", [])
+            self.state_bus.prediction_confidence = output.get("confidence", 0.0)
+
+        elif tier == "evolution":
+            self.state_bus.evolution_generation = output.get("generation", 0)
+            self.state_bus.creative_insights = output.get("insights", [])
+
+    def report_action_result(self, success: bool):
+        """Report the result of the last action for performance tracking"""
+        self.state_bus.last_action_success = success
+
+        # Update performance trend
+        recent_successes = sum(1 for _ in range(5) if self.state_bus.last_action_success)
+        if recent_successes >= 4:
+            self.state_bus.performance_trend = "improving"
+        elif recent_successes <= 1:
+            self.state_bus.performance_trend = "declining"
+        else:
+            self.state_bus.performance_trend = "stable"
+
+    def request_attention_shift(self, target: str):
+        """Request an attention shift to a specific area"""
+        self.state_bus.attention_shift_requested = True
+        self.state_bus.attention_target = target
+        logger.debug(f"Attention shift requested to: {target}")

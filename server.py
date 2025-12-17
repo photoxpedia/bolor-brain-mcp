@@ -53,6 +53,10 @@ try:
 except ImportError:
     NUMPY_AVAILABLE = False
 
+# Differentiated Memory System (new architecture) - imported after logger is defined
+MEMORY_BRIDGE_AVAILABLE = False
+BrainMemoryBridge = None
+
 # Vector embeddings for semantic similarity (lazy loaded)
 EMBEDDINGS_AVAILABLE = False
 SentenceTransformer = None
@@ -81,6 +85,16 @@ except ImportError:
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Now import the memory bridge (after logger is available)
+try:
+    from modules.integration import BrainMemoryBridge
+    MEMORY_BRIDGE_AVAILABLE = True
+    logger.info("Differentiated memory system modules loaded")
+except ImportError as e:
+    MEMORY_BRIDGE_AVAILABLE = False
+    BrainMemoryBridge = None
+    logger.warning(f"Memory bridge not available: {e}")
 
 @dataclass
 class MemoryItem:
@@ -220,49 +234,62 @@ class SimpleBrain:
         self._embedding_cache_max_size = int(os.getenv('BRAIN_EMBEDDING_CACHE_SIZE', '1000'))
         self._use_embedding_cache = os.getenv('BRAIN_USE_EMBEDDING_CACHE', 'true').lower() == 'true'
         
-        # NEW: Initialize Universal Discovery Engine
-        self.universal_discovery = UniversalDiscoveryEngine(self)
+        # Initialize cognitive engines (deferred to allow class loading)
         self.discovered_systems: Dict[str, DiscoveredSystem] = {}
-        
-        # NEW: Initialize Advanced Reasoning Engine (Tier 1 Upgrade)
-        self.advanced_reasoning = AdvancedReasoningEngine(self)
-        
-        # NEW: Initialize Predictive Intelligence Engine (Tier 2 Upgrade)
-        self.predictive_intelligence = PredictiveIntelligenceEngine(self)
-        
-        # NEW: Initialize Meta-Cognitive Intelligence Engine (Tier 3 Upgrade)
-        self.meta_cognitive = MetaCognitiveIntelligenceEngine(self)
-        
-        # NEW: Initialize Evolutionary Cognitive Intelligence Engine (Tier 4 Upgrade)
-        self.evolutionary_cognitive = EvolutionaryCognitiveIntelligenceEngine(self)
-        
-        # NEW: Initialize Collective Consciousness Network Engine (Tier 5 Upgrade)
-        self.collective_consciousness = CollectiveConsciousnessNetworkEngine(self)
-        
-        # NEW: Initialize Universal Field Orchestration Engine (Tier 6 Ultimate Upgrade)
-        self.universal_orchestration = UniversalFieldOrchestrationEngine(self)
-        
-        # NEW: Initialize Pure Universal Being Engine (Tier 7 Ultimate Transcendence)
-        self.pure_universal_being = PureUniversalBeingEngine(self)
-        
-        # NEW: Initialize Intelligent Guidance Engine (Step 3)
-        self.intelligent_guidance = IntelligentGuidanceEngine(self)
-        
-        # NEW: Initialize Continuous Learning System (Step 4)
-        self.continuous_learning = ContinuousLearningSystem(self)
-        
-        # Load existing memories
+        self.universal_discovery = None
+        self.advanced_reasoning = None
+        self.predictive_intelligence = None
+        self.meta_cognitive = None
+        self.evolutionary_cognitive = None
+        self.collective_consciousness = None
+        self.universal_orchestration = None
+        self.pure_universal_being = None
+        self.intelligent_guidance = None
+        self.continuous_learning = None
+        self._engines_initialized = False
+
+        # Initialize differentiated memory system (new architecture)
+        self.memory_bridge = None
+        if MEMORY_BRIDGE_AVAILABLE:
+            try:
+                self.memory_bridge = BrainMemoryBridge(self.storage_path, auto_migrate=True)
+                logger.info("Differentiated memory system initialized with auto-migration")
+            except Exception as e:
+                logger.warning(f"Failed to initialize memory bridge: {e}")
+                self.memory_bridge = None
+
+        # Load existing memories (legacy system)
         self._load_memories()
         
         # Load discovered systems from database
         self._load_discovered_systems()
         
         logger.info(f"Enhanced Brain initialized with {len(self.memories)} memories")
-        logger.info(f"Universal Discovery Engine initialized")
         logger.info(f"Discovered systems: {len(self.discovered_systems)}")
         logger.info(f"Resource server ID: {self._resource_server_id}")
         logger.info(f"Security context initialized: {self.cognitive_state.security_context.authenticated}")
-    
+
+    def _init_engines(self):
+        """Lazily initialize cognitive engines after all classes are loaded"""
+        if self._engines_initialized:
+            return
+        try:
+            self.universal_discovery = UniversalDiscoveryEngine(self)
+            self.advanced_reasoning = AdvancedReasoningEngine(self)
+            self.predictive_intelligence = PredictiveIntelligenceEngine(self)
+            self.meta_cognitive = MetaCognitiveIntelligenceEngine(self)
+            self.evolutionary_cognitive = EvolutionaryCognitiveIntelligenceEngine(self)
+            self.collective_consciousness = CollectiveConsciousnessNetworkEngine(self)
+            self.universal_orchestration = UniversalFieldOrchestrationEngine(self)
+            self.pure_universal_being = PureUniversalBeingEngine(self)
+            self.intelligent_guidance = IntelligentGuidanceEngine(self)
+            self.continuous_learning = ContinuousLearningSystem(self)
+            self._engines_initialized = True
+            logger.info("All cognitive engines initialized")
+        except Exception as e:
+            logger.warning(f"Some cognitive engines failed to initialize: {e}")
+            self._engines_initialized = True  # Don't retry
+
     def _init_database(self):
         """Initialize SQLite database with proper schema"""
         try:
@@ -1447,6 +1474,7 @@ def _initialize_brain():
     global brain
     if brain is None:
         brain = SimpleBrain()
+        brain._init_engines()  # Initialize cognitive engines after all classes loaded
     return brain
 
 # MCP Server setup
@@ -1949,6 +1977,436 @@ if MCP_AVAILABLE:
                     },
                     "additionalProperties": False
                 }
+            ),
+
+            # =========================================================================
+            # DIFFERENTIATED MEMORY SYSTEM TOOLS (New Architecture)
+            # =========================================================================
+
+            # --- Working Memory (Transient) ---
+            types.Tool(
+                name="working_memory_add",
+                description="💭 WORKING: Add item to transient working memory (auto-expires, max 9 items)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "content": {
+                            "type": "string",
+                            "description": "Content to hold in working memory"
+                        },
+                        "ttl_seconds": {
+                            "type": "integer",
+                            "description": "Time-to-live in seconds (default 300 = 5 minutes)",
+                            "default": 300,
+                            "minimum": 60,
+                            "maximum": 3600
+                        },
+                        "tags": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Tags for categorizing the working memory item"
+                        }
+                    },
+                    "required": ["content"]
+                }
+            ),
+            types.Tool(
+                name="working_memory_get",
+                description="💭 WORKING: Get all active items in working memory with their activation levels",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False
+                }
+            ),
+            types.Tool(
+                name="working_memory_clear",
+                description="💭 WORKING: Clear all working memory items",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False
+                }
+            ),
+
+            # --- Episodic Memory (Experiences) ---
+            types.Tool(
+                name="store_episode",
+                description="📝 EPISODIC: Store an experience/episode with situation, action, outcome, and reward signal",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "situation": {
+                            "type": "string",
+                            "description": "What was the context/situation"
+                        },
+                        "action": {
+                            "type": "string",
+                            "description": "What action was taken"
+                        },
+                        "outcome": {
+                            "type": "string",
+                            "description": "What was the result"
+                        },
+                        "reward": {
+                            "type": "number",
+                            "minimum": -1.0,
+                            "maximum": 1.0,
+                            "description": "Success/failure signal (-1 to 1)",
+                            "default": 0.0
+                        },
+                        "emotional_valence": {
+                            "type": "number",
+                            "minimum": -1.0,
+                            "maximum": 1.0,
+                            "description": "Emotional tone (-1 negative to 1 positive)",
+                            "default": 0.0
+                        },
+                        "emotional_intensity": {
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                            "description": "Emotional intensity (0 calm to 1 intense)",
+                            "default": 0.0
+                        }
+                    },
+                    "required": ["situation"]
+                }
+            ),
+            types.Tool(
+                name="retrieve_episodes",
+                description="📝 EPISODIC: Retrieve episodic memories with optional filters",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query for episodes"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum episodes to return",
+                            "default": 10
+                        },
+                        "min_reward": {
+                            "type": "number",
+                            "minimum": -1.0,
+                            "maximum": 1.0,
+                            "description": "Minimum reward filter"
+                        },
+                        "hours_ago": {
+                            "type": "number",
+                            "description": "Only retrieve episodes from last N hours"
+                        }
+                    }
+                }
+            ),
+
+            # --- Semantic Memory (Knowledge Graph) ---
+            types.Tool(
+                name="add_concept",
+                description="🧠 SEMANTIC: Add a concept/entity to the knowledge graph",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "label": {
+                            "type": "string",
+                            "description": "Name/label of the concept"
+                        },
+                        "node_type": {
+                            "type": "string",
+                            "enum": ["concept", "entity", "fact", "definition", "category"],
+                            "description": "Type of semantic node",
+                            "default": "concept"
+                        },
+                        "properties": {
+                            "type": "object",
+                            "description": "Properties/attributes of the concept",
+                            "additionalProperties": True
+                        },
+                        "source_episode": {
+                            "type": "string",
+                            "description": "Episode ID that grounds this concept in experience"
+                        }
+                    },
+                    "required": ["label"]
+                }
+            ),
+            types.Tool(
+                name="add_relationship",
+                description="🧠 SEMANTIC: Add a relationship between concepts in the knowledge graph",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "source_label": {
+                            "type": "string",
+                            "description": "Label of the source concept"
+                        },
+                        "target_label": {
+                            "type": "string",
+                            "description": "Label of the target concept"
+                        },
+                        "relation_type": {
+                            "type": "string",
+                            "enum": ["is_a", "has_property", "causes", "requires", "part_of", "related_to"],
+                            "description": "Type of relationship"
+                        },
+                        "evidence_episode": {
+                            "type": "string",
+                            "description": "Episode ID as evidence for this relationship"
+                        }
+                    },
+                    "required": ["source_label", "target_label", "relation_type"]
+                }
+            ),
+            types.Tool(
+                name="query_knowledge",
+                description="🧠 SEMANTIC: Search the knowledge graph for concepts",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query for concepts"
+                        },
+                        "node_type": {
+                            "type": "string",
+                            "enum": ["concept", "entity", "fact", "definition", "category"],
+                            "description": "Filter by node type"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum results to return",
+                            "default": 10
+                        }
+                    },
+                    "required": ["query"]
+                }
+            ),
+            types.Tool(
+                name="infer_relations",
+                description="🧠 SEMANTIC: Get inferred transitive relations (e.g., A is_a B, B is_a C → A is_a C)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "label": {
+                            "type": "string",
+                            "description": "Label of the concept to start from"
+                        },
+                        "relation_type": {
+                            "type": "string",
+                            "enum": ["is_a", "part_of", "requires"],
+                            "description": "Transitive relation type to follow"
+                        }
+                    },
+                    "required": ["label", "relation_type"]
+                }
+            ),
+
+            # --- Procedural Memory (Executable Skills) ---
+            types.Tool(
+                name="register_skill",
+                description="⚙️ PROCEDURAL: Register an executable Python skill",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Unique name for the skill"
+                        },
+                        "code": {
+                            "type": "string",
+                            "description": "Python code (must define skill_main(**kwargs) function)"
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Description of what the skill does"
+                        },
+                        "trigger_conditions": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Keywords/conditions that suggest using this skill"
+                        }
+                    },
+                    "required": ["name", "code"]
+                }
+            ),
+            types.Tool(
+                name="execute_skill",
+                description="⚙️ PROCEDURAL: Execute a registered skill with inputs",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of the skill to execute"
+                        },
+                        "inputs": {
+                            "type": "object",
+                            "description": "Input parameters for the skill",
+                            "additionalProperties": True
+                        },
+                        "timeout": {
+                            "type": "number",
+                            "description": "Execution timeout in seconds",
+                            "default": 30.0
+                        }
+                    },
+                    "required": ["name", "inputs"]
+                }
+            ),
+            types.Tool(
+                name="search_skills",
+                description="⚙️ PROCEDURAL: Search for registered skills",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query for skill name/description"
+                        },
+                        "trigger": {
+                            "type": "string",
+                            "description": "Search by trigger condition"
+                        }
+                    }
+                }
+            ),
+
+            # --- Self Model (Identity) ---
+            types.Tool(
+                name="get_self_model",
+                description="🪞 SELF: Get the brain's self-model (identity, values, stage, capabilities)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False
+                }
+            ),
+            types.Tool(
+                name="update_self_model",
+                description="🪞 SELF: Update aspects of the brain's self-model",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "current_focus": {
+                            "type": "string",
+                            "description": "Update current focus"
+                        },
+                        "confidence_level": {
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                            "description": "Update confidence level"
+                        },
+                        "add_strength": {
+                            "type": "string",
+                            "description": "Add a recognized strength"
+                        },
+                        "add_improvement_area": {
+                            "type": "string",
+                            "description": "Add an area for improvement"
+                        }
+                    }
+                }
+            ),
+            types.Tool(
+                name="record_performance",
+                description="🪞 SELF: Record a performance metric (affects developmental stage progression)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "metric": {
+                            "type": "string",
+                            "description": "Name of the metric (e.g., reasoning_accuracy, prediction_success)"
+                        },
+                        "score": {
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                            "description": "Performance score (0 to 1)"
+                        }
+                    },
+                    "required": ["metric", "score"]
+                }
+            ),
+            types.Tool(
+                name="add_reflection",
+                description="🪞 SELF: Add a reflection to the brain's self-model",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "content": {
+                            "type": "string",
+                            "description": "The reflection content"
+                        },
+                        "category": {
+                            "type": "string",
+                            "enum": ["general", "learning", "performance", "emotional", "development"],
+                            "description": "Category of reflection",
+                            "default": "general"
+                        }
+                    },
+                    "required": ["content"]
+                }
+            ),
+
+            # --- Intrinsic Drives ---
+            types.Tool(
+                name="get_drive_state",
+                description="🎯 DRIVES: Get current state of all intrinsic drives (curiosity, novelty, competence, connection, stability)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False
+                }
+            ),
+            types.Tool(
+                name="get_motivation_context",
+                description="🎯 DRIVES: Get full motivation context including dominant drive and suggested actions",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False
+                }
+            ),
+            types.Tool(
+                name="record_drive_action",
+                description="🎯 DRIVES: Record an action to satisfy drives",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": ["learn", "explore", "research", "discover", "experiment", "create",
+                                    "practice", "master", "improve", "solve_problem", "succeed",
+                                    "interact", "collaborate", "help", "communicate",
+                                    "routine", "familiar_task", "confirm_understanding", "organize"],
+                            "description": "Type of action taken"
+                        }
+                    },
+                    "required": ["action"]
+                }
+            ),
+
+            # --- Memory Consolidation ---
+            types.Tool(
+                name="consolidate_memories",
+                description="🔄 CONSOLIDATE: Run memory consolidation (strengthen frequently used, decay unused)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False
+                }
+            ),
+            types.Tool(
+                name="get_memory_stats",
+                description="📊 STATS: Get comprehensive statistics from all memory subsystems",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False
+                }
             )
         ]
     
@@ -2397,13 +2855,13 @@ if MCP_AVAILABLE:
                 # PREDICTIVE INTELLIGENCE ENGINE
                 current_context = arguments.get("current_context", {})
                 history_depth = arguments.get("history_depth", 10)
-                
+
                 # Get predictions using the new engine
                 predictions = await brain.predictive_intelligence.predict_user_needs(
                     current_context=current_context,
                     history_depth=history_depth
                 )
-                
+
                 # Prepare comprehensive result
                 result = {
                     "current_context": current_context,
@@ -2424,7 +2882,302 @@ if MCP_AVAILABLE:
                     ],
                     "prediction_statistics": brain.predictive_intelligence.get_prediction_statistics()
                 }
-                
+
+            # =========================================================================
+            # DIFFERENTIATED MEMORY SYSTEM HANDLERS
+            # =========================================================================
+
+            # --- Working Memory ---
+            elif name == "working_memory_add":
+                item_id = brain.memory_bridge.add_to_working_memory(
+                    content=arguments["content"],
+                    ttl=arguments.get("ttl_seconds", 300),
+                    tags=arguments.get("tags", [])
+                )
+                result = {
+                    "status": "added",
+                    "item_id": item_id,
+                    "ttl_seconds": arguments.get("ttl_seconds", 300),
+                    "message": "Item added to working memory (transient, will auto-expire)"
+                }
+
+            elif name == "working_memory_get":
+                items = brain.memory_bridge.get_working_memory()
+                result = {
+                    "status": "success",
+                    "active_items": len(items),
+                    "items": items,
+                    "message": "Working memory is transient and never persisted"
+                }
+
+            elif name == "working_memory_clear":
+                brain.memory_bridge.clear_working_memory()
+                result = {
+                    "status": "cleared",
+                    "message": "Working memory cleared"
+                }
+
+            # --- Episodic Memory ---
+            elif name == "store_episode":
+                episode_id = brain.memory_bridge.store_episode(
+                    situation=arguments["situation"],
+                    action=arguments.get("action", ""),
+                    outcome=arguments.get("outcome", ""),
+                    reward=arguments.get("reward", 0.0),
+                    emotional_valence=arguments.get("emotional_valence", 0.0),
+                    emotional_intensity=arguments.get("emotional_intensity", 0.0)
+                )
+                result = {
+                    "status": "stored",
+                    "episode_id": episode_id,
+                    "message": "Episode stored with reward and emotional signals"
+                }
+
+            elif name == "retrieve_episodes":
+                episodes = brain.memory_bridge.retrieve_episodes(
+                    query=arguments.get("query", ""),
+                    limit=arguments.get("limit", 10),
+                    min_reward=arguments.get("min_reward"),
+                    time_hours=arguments.get("hours_ago")
+                )
+                result = {
+                    "status": "success",
+                    "episodes_found": len(episodes),
+                    "episodes": [
+                        {
+                            "id": ep.id,
+                            "situation": ep.situation,
+                            "action": ep.action,
+                            "outcome": ep.outcome,
+                            "reward": ep.reward,
+                            "emotional_valence": ep.emotional_valence,
+                            "strength": ep.strength,
+                            "timestamp": ep.timestamp,
+                            "is_foundation": ep.is_foundation
+                        }
+                        for ep in episodes
+                    ]
+                }
+
+            # --- Semantic Memory (Knowledge Graph) ---
+            elif name == "add_concept":
+                node_id = brain.memory_bridge.add_concept(
+                    label=arguments["label"],
+                    node_type=arguments.get("node_type", "concept"),
+                    properties=arguments.get("properties", {}),
+                    source_episode=arguments.get("source_episode")
+                )
+                result = {
+                    "status": "added",
+                    "node_id": node_id,
+                    "label": arguments["label"],
+                    "message": "Concept added to knowledge graph"
+                }
+
+            elif name == "add_relationship":
+                edge_id = brain.memory_bridge.add_relationship(
+                    source_label=arguments["source_label"],
+                    target_label=arguments["target_label"],
+                    relation_type=arguments["relation_type"],
+                    evidence_episode=arguments.get("evidence_episode")
+                )
+                if edge_id:
+                    result = {
+                        "status": "added",
+                        "edge_id": edge_id,
+                        "relationship": f"{arguments['source_label']} --{arguments['relation_type']}--> {arguments['target_label']}"
+                    }
+                else:
+                    result = {
+                        "status": "error",
+                        "message": "One or both concepts not found in knowledge graph"
+                    }
+
+            elif name == "query_knowledge":
+                nodes = brain.memory_bridge.query_knowledge(
+                    query=arguments["query"],
+                    node_type=arguments.get("node_type")
+                )
+                result = {
+                    "status": "success",
+                    "concepts_found": len(nodes),
+                    "concepts": [
+                        {
+                            "id": node.id,
+                            "label": node.label,
+                            "node_type": node.node_type,
+                            "properties": node.properties,
+                            "confidence": node.confidence
+                        }
+                        for node in nodes[:arguments.get("limit", 10)]
+                    ]
+                }
+
+            elif name == "infer_relations":
+                inferred = brain.memory_bridge.infer_relations(
+                    label=arguments["label"],
+                    relation_type=arguments["relation_type"]
+                )
+                result = {
+                    "status": "success",
+                    "query": f"{arguments['label']} --{arguments['relation_type']}--> ?",
+                    "inferred_count": len(inferred),
+                    "inferred_concepts": [
+                        {"label": node.label, "confidence": node.confidence}
+                        for node in inferred
+                    ],
+                    "message": "Transitive inference applied"
+                }
+
+            # --- Procedural Memory (Skills) ---
+            elif name == "register_skill":
+                skill_id = brain.memory_bridge.register_skill(
+                    name=arguments["name"],
+                    code=arguments["code"],
+                    description=arguments.get("description", ""),
+                    trigger_conditions=arguments.get("trigger_conditions", [])
+                )
+                result = {
+                    "status": "registered",
+                    "skill_id": skill_id,
+                    "name": arguments["name"],
+                    "message": "Skill registered. Use execute_skill to run it."
+                }
+
+            elif name == "execute_skill":
+                exec_result = brain.memory_bridge.execute_skill(
+                    name=arguments["name"],
+                    inputs=arguments["inputs"]
+                )
+                result = {
+                    "status": "executed" if exec_result.get("success") else "failed",
+                    "skill_name": arguments["name"],
+                    "success": exec_result.get("success", False),
+                    "result": exec_result.get("result"),
+                    "error": exec_result.get("error"),
+                    "execution_time": exec_result.get("execution_time")
+                }
+
+            elif name == "search_skills":
+                skills = brain.memory_bridge.search_skills(
+                    query=arguments.get("query"),
+                    trigger=arguments.get("trigger")
+                )
+                result = {
+                    "status": "success",
+                    "skills_found": len(skills),
+                    "skills": [
+                        {
+                            "name": skill.name,
+                            "description": skill.description,
+                            "success_rate": skill.success_count / max(1, skill.success_count + skill.failure_count),
+                            "version": skill.version,
+                            "trigger_conditions": skill.trigger_conditions
+                        }
+                        for skill in skills
+                    ]
+                }
+
+            # --- Self Model ---
+            elif name == "get_self_model":
+                self_model = brain.memory_bridge.get_self_model()
+                result = {
+                    "status": "success",
+                    "self_model": self_model
+                }
+
+            elif name == "update_self_model":
+                updates = {}
+                if "current_focus" in arguments:
+                    updates["current_focus"] = arguments["current_focus"]
+                if "confidence_level" in arguments:
+                    updates["confidence_level"] = arguments["confidence_level"]
+
+                brain.memory_bridge.update_self_model(**updates)
+
+                if arguments.get("add_strength"):
+                    model = brain.memory_bridge.unified.self_model.get()
+                    if arguments["add_strength"] not in model.strengths:
+                        model.strengths.append(arguments["add_strength"])
+                        brain.memory_bridge.unified.self_model._save()
+
+                if arguments.get("add_improvement_area"):
+                    model = brain.memory_bridge.unified.self_model.get()
+                    if arguments["add_improvement_area"] not in model.areas_for_improvement:
+                        model.areas_for_improvement.append(arguments["add_improvement_area"])
+                        brain.memory_bridge.unified.self_model._save()
+
+                result = {
+                    "status": "updated",
+                    "updates_applied": list(arguments.keys()),
+                    "current_model": brain.memory_bridge.get_self_model()
+                }
+
+            elif name == "record_performance":
+                brain.memory_bridge.record_performance(
+                    metric=arguments["metric"],
+                    score=arguments["score"]
+                )
+                model = brain.memory_bridge.get_self_model()
+                result = {
+                    "status": "recorded",
+                    "metric": arguments["metric"],
+                    "score": arguments["score"],
+                    "developmental_stage": model["developmental_stage"],
+                    "stage_progression": model["stage_progression"],
+                    "message": "Performance affects developmental stage progression"
+                }
+
+            elif name == "add_reflection":
+                brain.memory_bridge.add_reflection(
+                    content=arguments["content"],
+                    category=arguments.get("category", "general")
+                )
+                result = {
+                    "status": "added",
+                    "category": arguments.get("category", "general"),
+                    "message": "Reflection added to self-model"
+                }
+
+            # --- Intrinsic Drives ---
+            elif name == "get_drive_state":
+                drives = brain.memory_bridge.get_drive_state()
+                result = {
+                    "status": "success",
+                    "drives": drives
+                }
+
+            elif name == "get_motivation_context":
+                motivation = brain.memory_bridge.get_motivation_context()
+                result = {
+                    "status": "success",
+                    "motivation": motivation
+                }
+
+            elif name == "record_drive_action":
+                affected = brain.memory_bridge.record_drive_action(arguments["action"])
+                result = {
+                    "status": "recorded",
+                    "action": arguments["action"],
+                    "drives_affected": affected,
+                    "message": "Action recorded, drives updated"
+                }
+
+            # --- Memory Consolidation ---
+            elif name == "consolidate_memories":
+                brain.memory_bridge.consolidate_memories()
+                result = {
+                    "status": "consolidated",
+                    "message": "Memory consolidation complete (strengthened frequently used, decayed unused)"
+                }
+
+            elif name == "get_memory_stats":
+                stats = brain.memory_bridge.get_memory_stats()
+                result = {
+                    "status": "success",
+                    "stats": stats
+                }
+
             else:
                 raise ValueError(f"Unknown tool: {name}")
             
@@ -2476,10 +3229,10 @@ if MCP_AVAILABLE:
                     capabilities=server.get_capabilities(
                         notification_options=NotificationOptions(),
                         experimental_capabilities={
-                            "streamable_http": True,
-                            "async_operations": True,
-                            "pagination": True,
-                            "sqlite_storage": True
+                            "streamable_http": {},
+                            "async_operations": {},
+                            "pagination": {},
+                            "sqlite_storage": {}
                         },
                     ),
                 ),

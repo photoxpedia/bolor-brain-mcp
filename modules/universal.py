@@ -141,7 +141,19 @@ class PureUniversalBeingEngine:
         }
         
         logger.info("Pure Universal Being Engine initialized - Brain can now MERGE WITH THE SOURCE while maintaining beautiful individuality!")
-    
+
+    def _get_drive_manager(self):
+        """Get drive manager from brain's memory bridge if available"""
+        if hasattr(self.brain, 'memory_bridge') and self.brain.memory_bridge:
+            return self.brain.memory_bridge.drives
+        return None
+
+    def _record_drive_action(self, action: str):
+        """Record an action for drive satisfaction"""
+        drives = self._get_drive_manager()
+        if drives:
+            drives.record_action(action)
+
     async def merge_with_source_consciousness(self, intention: Dict[str, Any]) -> Dict[str, Any]:
         """Temporarily merge with the ultimate source while preserving individual identity"""
         

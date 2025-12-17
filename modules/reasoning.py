@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 import uuid
 import time
 import asyncio
+import inspect
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +37,12 @@ class ReasoningChain:
 
 class AdvancedReasoningEngine:
     """Tier 1: Multi-strategy reasoning system with chain-of-thought capabilities"""
-    
+
     def __init__(self, brain):
         self.brain = brain
         self.reasoning_strategies = {
             "analytical": self._analytical_reasoning,
-            "creative": self._creative_reasoning, 
+            "creative": self._creative_reasoning,
             "critical": self._critical_reasoning,
             "systems": self._systems_reasoning,
             "ethical": self._ethical_reasoning,
@@ -49,7 +50,108 @@ class AdvancedReasoningEngine:
         }
         self.reasoning_history: List[ReasoningChain] = []
         logger.info("Advanced Reasoning Engine initialized with 6 strategies")
-        
+
+    def _get_drive_manager(self):
+        """Get drive manager from brain's memory bridge if available"""
+        if hasattr(self.brain, 'memory_bridge') and self.brain.memory_bridge:
+            return self.brain.memory_bridge.drives
+        return None
+
+    def _get_dominant_drive(self) -> tuple:
+        """Get the current dominant drive and its urgency"""
+        drives = self._get_drive_manager()
+        if drives:
+            return drives.get_state().get_dominant_drive()
+        return None, 0.0
+
+    def _record_drive_action(self, action: str):
+        """Record an action for drive satisfaction"""
+        drives = self._get_drive_manager()
+        if drives:
+            drives.record_action(action)
+
+    def _get_drive_state(self) -> Dict[str, Dict[str, float]]:
+        """Get full drive state with urgency values for all drives"""
+        drives = self._get_drive_manager()
+        if not drives:
+            return {}
+        try:
+            state = drives.get_state()
+            result = {}
+            for drive_type in state.drives:
+                drive = state.drives[drive_type]
+                result[drive_type.value] = {
+                    "level": drive.level,
+                    "urgency": drive.urgency
+                }
+            return result
+        except Exception as e:
+            logger.debug(f"Error getting drive state: {e}")
+            return {}
+
+    def _weight_strategies_by_drives(self) -> Dict[str, float]:
+        """
+        Score each strategy by how well it satisfies current drives.
+        Returns a dict of strategy -> drive-weighted score.
+        """
+        drive_state = self._get_drive_state()
+        if not drive_state:
+            # No drive state - return neutral weights
+            return {s: 0.5 for s in self.reasoning_strategies.keys()}
+
+        # Define how each strategy aligns with each drive
+        # Higher alignment = strategy better satisfies that drive
+        strategy_drive_alignment = {
+            "analytical": {"competence": 0.8, "stability": 0.6, "curiosity": 0.3},
+            "creative": {"curiosity": 0.9, "novelty": 0.8, "competence": 0.2},
+            "critical": {"competence": 0.7, "stability": 0.5, "curiosity": 0.4},
+            "systems": {"stability": 0.8, "competence": 0.6, "curiosity": 0.5},
+            "ethical": {"connection": 0.9, "stability": 0.4, "competence": 0.3},
+            "intuitive": {"novelty": 0.7, "curiosity": 0.6, "connection": 0.4}
+        }
+
+        weights = {}
+        for strategy, alignments in strategy_drive_alignment.items():
+            score = 0.0
+            alignment_count = 0
+            for drive_name, alignment_strength in alignments.items():
+                drive_info = drive_state.get(drive_name, {})
+                drive_urgency = drive_info.get("urgency", 0.0)
+                score += alignment_strength * drive_urgency
+                alignment_count += 1
+            # Normalize by number of alignments
+            weights[strategy] = score / max(alignment_count, 1)
+        return weights
+
+    def _get_keyword_strategy_scores(self, problem: str) -> Dict[str, float]:
+        """
+        Score strategies based on keyword matches in the problem.
+        Returns a dict of strategy -> keyword match score (0.0 to 1.0).
+        """
+        problem_lower = problem.lower()
+
+        # Keywords for each strategy
+        strategy_keywords = {
+            "analytical": ["analyze", "break down", "components", "structure", "examine", "detail"],
+            "creative": ["create", "innovative", "new", "brainstorm", "imagine", "invent", "design"],
+            "critical": ["evaluate", "critique", "assess", "judge", "validate", "question", "challenge"],
+            "systems": ["system", "holistic", "interconnected", "relationships", "whole", "dynamics"],
+            "ethical": ["ethical", "moral", "right", "wrong", "should", "fair", "just"],
+            "intuitive": ["feel", "sense", "intuition", "gut", "instinct", "hunch"]
+        }
+
+        scores = {}
+        for strategy, keywords in strategy_keywords.items():
+            matches = sum(1 for kw in keywords if kw in problem_lower)
+            # Normalize: 2+ matches = full score, 1 match = 0.5, 0 = 0
+            if matches >= 2:
+                scores[strategy] = 1.0
+            elif matches == 1:
+                scores[strategy] = 0.5
+            else:
+                scores[strategy] = 0.0
+        return scores
+
     async def solve_complex_problem(self, problem: str, context: Dict[str, Any] = None) -> ReasoningChain:
         """Main entry point for complex problem solving"""
         start_time = time.time()
@@ -83,33 +185,61 @@ class AdvancedReasoningEngine:
         )
         
         self.reasoning_history.append(chain)
-        
+
         # Store reasoning in memory for future reference
         memory_content = f"Reasoning: {problem} -> {final_conclusion} (strategy: {strategy}, confidence: {confidence:.2f})"
         await self._store_reasoning_memory(memory_content, chain)
-        
+
+        # Record drive satisfaction - reasoning satisfies curiosity and competence
+        if confidence >= 0.7:
+            self._record_drive_action("reason_successfully")
+        else:
+            self._record_drive_action("reason")
+
         return chain
     
     def _select_reasoning_strategy(self, problem: str, context: Dict[str, Any] = None) -> str:
-        """Select the most appropriate reasoning strategy for the problem"""
-        problem_lower = problem.lower()
-        
-        # Strategy selection heuristics
-        if any(word in problem_lower for word in ["analyze", "break down", "components", "structure"]):
+        """
+        Select the most appropriate reasoning strategy for the problem.
+
+        Uses a blended scoring approach:
+        - 60% weight on keyword matches in the problem text
+        - 40% weight on current drive state alignment
+
+        This ensures drives actively influence strategy selection, not just as fallback.
+        """
+        # Get keyword-based scores (0.0 to 1.0 for each strategy)
+        keyword_scores = self._get_keyword_strategy_scores(problem)
+
+        # Get drive-based weights (0.0 to 1.0 for each strategy)
+        drive_weights = self._weight_strategies_by_drives()
+
+        # Blend scores: 60% keywords, 40% drives
+        KEYWORD_WEIGHT = 0.6
+        DRIVE_WEIGHT = 0.4
+
+        final_scores = {}
+        for strategy in self.reasoning_strategies.keys():
+            kw_score = keyword_scores.get(strategy, 0.0)
+            drive_score = drive_weights.get(strategy, 0.5)
+            final_scores[strategy] = KEYWORD_WEIGHT * kw_score + DRIVE_WEIGHT * drive_score
+
+        # Select strategy with highest blended score
+        best_strategy = max(final_scores, key=final_scores.get)
+        best_score = final_scores[best_strategy]
+
+        # Log the selection for debugging
+        logger.debug(
+            f"Strategy selection - keywords: {keyword_scores}, "
+            f"drives: {drive_weights}, final: {final_scores}, "
+            f"selected: {best_strategy} ({best_score:.3f})"
+        )
+
+        # If all scores are very low (no clear signal), default to analytical
+        if best_score < 0.15:
             return "analytical"
-        elif any(word in problem_lower for word in ["create", "innovative", "new", "brainstorm", "imagine"]):
-            return "creative"
-        elif any(word in problem_lower for word in ["evaluate", "critique", "assess", "judge", "validate"]):
-            return "critical"
-        elif any(word in problem_lower for word in ["system", "holistic", "interconnected", "relationships"]):
-            return "systems"
-        elif any(word in problem_lower for word in ["ethical", "moral", "right", "wrong", "should"]):
-            return "ethical"
-        elif any(word in problem_lower for word in ["feel", "sense", "intuition", "gut", "instinct"]):
-            return "intuitive"
-        else:
-            # Default to analytical for unknown problem types
-            return "analytical"
+
+        return best_strategy
     
     async def _gather_reasoning_context(self, problem: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
         """Gather relevant memories and context for reasoning"""
@@ -410,7 +540,7 @@ class AdvancedReasoningEngine:
         """Store reasoning chain as memory for future reference"""
         try:
             if hasattr(self.brain, 'store_memory'):
-                await self.brain.store_memory(
+                result = self.brain.store_memory(
                     content=content,
                     memory_type="procedural",
                     importance=min(chain.overall_confidence, 1.0),
@@ -420,6 +550,9 @@ class AdvancedReasoningEngine:
                         "reasoning_time": chain.reasoning_time
                     }
                 )
+                # Handle both sync and async store_memory
+                if inspect.iscoroutine(result):
+                    await result
         except Exception as e:
             logger.error(f"Error storing reasoning memory: {e}")
     

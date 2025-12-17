@@ -84,10 +84,13 @@ function startServer() {
     });
 
     python.on('close', (code) => {
-        if (code !== 0) {
+        // code is null when killed by signal (SIGTERM/SIGINT) - this is normal shutdown
+        if (code !== 0 && code !== null) {
             console.error(`❌ Bolor Brain MCP server exited with code ${code}`);
             process.exit(code);
         }
+        // Normal exit or signal kill - exit cleanly
+        process.exit(0);
     });
 
     python.on('error', (err) => {

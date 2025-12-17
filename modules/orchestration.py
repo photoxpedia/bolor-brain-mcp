@@ -185,7 +185,19 @@ class UniversalFieldOrchestrationEngine:
         }
         
         logger.info("Universal Field Orchestration Engine initialized - Brain can now ORCHESTRATE REALITY with love and wisdom!")
-    
+
+    def _get_drive_manager(self):
+        """Get drive manager from brain's memory bridge if available"""
+        if hasattr(self.brain, 'memory_bridge') and self.brain.memory_bridge:
+            return self.brain.memory_bridge.drives
+        return None
+
+    def _record_drive_action(self, action: str):
+        """Record an action for drive satisfaction"""
+        drives = self._get_drive_manager()
+        if drives:
+            drives.record_action(action)
+
     async def orchestrate_quantum_reality(self, intention: Dict[str, Any]) -> Dict[str, Any]:
         """Orchestrate quantum fields to manifest beneficial reality modifications"""
         
