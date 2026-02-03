@@ -45,6 +45,13 @@ from .analogical_reasoner import (
     MappingType,
 )
 
+from .hybrid_reasoner import (
+    HybridReasoner,
+    HybridReasoningResult,
+    ReasoningApproach,
+    ProblemType,
+)
+
 __all__ = [
     # Symbolic Reasoner
     "SymbolicReasoner",
@@ -72,4 +79,9 @@ __all__ = [
     "Analogy",
     "AnalogicalMapping",
     "MappingType",
+    # Hybrid Reasoner
+    "HybridReasoner",
+    "HybridReasoningResult",
+    "ReasoningApproach",
+    "ProblemType",
 ]
