@@ -45,6 +45,14 @@ Cognitive Tiers:
 - Tier 5: Collective Consciousness Network (collective.py)
 - Tier 6: Universal Field Orchestration (orchestration.py)
 - Tier 7: Pure Universal Being Integration (universal.py)
+
+Reasoning Engines (reasoning_engines/):
+- SymbolicReasoner: Forward/backward chaining with rules and facts
+- KnowledgeGraph: Graph-based knowledge with traversal and inference
+- CaseBasedReasoner: Experience-based reasoning with 4R cycle
+- HypothesisEngine: Hypothesis generation and testing
+- AnalogicalReasoner: Cross-domain pattern transfer
+- HybridReasoner: Orchestrates all reasoning approaches
 """
 
 # Configuration
@@ -124,6 +132,41 @@ from .embeddings import (
     embedding_service,
 )
 
+# Reasoning Engines (Phase 2)
+from .reasoning_engines import (
+    # Symbolic Reasoner
+    SymbolicReasoner,
+    Fact,
+    FactType,
+    Rule,
+    ReasoningResult,
+    # Knowledge Graph
+    KnowledgeGraph,
+    Node,
+    Edge,
+    PathResult,
+    # Case-Based Reasoner
+    CaseBasedReasoner,
+    Case,
+    CaseMatch,
+    CaseReasoningResult,
+    # Hypothesis Engine
+    HypothesisEngine,
+    Hypothesis,
+    HypothesisTest,
+    # Analogical Reasoner
+    AnalogicalReasoner,
+    Concept,
+    Analogy,
+    AnalogicalMapping,
+    MappingType,
+    # Hybrid Reasoner
+    HybridReasoner,
+    HybridReasoningResult,
+    ReasoningApproach,
+    ProblemType,
+)
+
 # Cognitive tiers
 from .reasoning import AdvancedReasoningEngine
 from .predictive import PredictiveIntelligenceEngine
@@ -194,4 +237,30 @@ __all__ = [
     "CollectiveConsciousnessNetworkEngine",
     "UniversalFieldOrchestrationEngine",
     "PureUniversalBeingEngine",
+    # Reasoning Engines (Phase 2)
+    "SymbolicReasoner",
+    "Fact",
+    "FactType",
+    "Rule",
+    "ReasoningResult",
+    "KnowledgeGraph",
+    "Node",
+    "Edge",
+    "PathResult",
+    "CaseBasedReasoner",
+    "Case",
+    "CaseMatch",
+    "CaseReasoningResult",
+    "HypothesisEngine",
+    "Hypothesis",
+    "HypothesisTest",
+    "AnalogicalReasoner",
+    "Concept",
+    "Analogy",
+    "AnalogicalMapping",
+    "MappingType",
+    "HybridReasoner",
+    "HybridReasoningResult",
+    "ReasoningApproach",
+    "ProblemType",
 ]
