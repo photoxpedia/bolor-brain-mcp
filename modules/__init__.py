@@ -5,6 +5,23 @@ Bolor Brain Cognitive Modules
 
 This package contains the core cognitive architecture:
 
+Configuration (config.py):
+- Config: Central configuration dataclass
+- get_config/set_config: Global config access
+- validate_python_version: Version checking
+- VALID_PROVIDERS: Supported LLM providers
+
+LLM Bridge (llm_bridge.py):
+- LLMBridge: Optional LLM integration with fallback
+- LLMResponse: Structured response from LLM operations
+- LLMBridgeError: Error type for bridge operations
+
+Cognitive Genome (genome.py):
+- CognitiveGenome: Evolvable parameters for all cognitive behavior
+- Gene: Single evolvable parameter with fitness tracking
+- GeneCategory: Categories of genes (attention, drives, etc.)
+- DEFAULT_GENES: 60+ default gene definitions
+
 Memory System (memory.py):
 - WorkingMemory: Transient buffer (7±2 items, never persisted)
 - EpisodicMemoryStore: Experiences with reward/emotion signals
@@ -29,6 +46,31 @@ Cognitive Tiers:
 - Tier 6: Universal Field Orchestration (orchestration.py)
 - Tier 7: Pure Universal Being Integration (universal.py)
 """
+
+# Configuration
+from .config import (
+    Config,
+    get_config,
+    set_config,
+    validate_python_version,
+    VALID_PROVIDERS,
+    VALID_LLM_USE_CASES,
+)
+
+# LLM Bridge
+from .llm_bridge import (
+    LLMBridge,
+    LLMResponse,
+    LLMBridgeError,
+)
+
+# Cognitive Genome
+from .genome import (
+    CognitiveGenome,
+    Gene,
+    GeneCategory,
+    DEFAULT_GENES,
+)
 
 # Memory subsystems
 from .memory import (
@@ -92,6 +134,22 @@ from .orchestration import UniversalFieldOrchestrationEngine
 from .universal import PureUniversalBeingEngine
 
 __all__ = [
+    # Configuration
+    "Config",
+    "get_config",
+    "set_config",
+    "validate_python_version",
+    "VALID_PROVIDERS",
+    "VALID_LLM_USE_CASES",
+    # LLM Bridge
+    "LLMBridge",
+    "LLMResponse",
+    "LLMBridgeError",
+    # Cognitive Genome
+    "CognitiveGenome",
+    "Gene",
+    "GeneCategory",
+    "DEFAULT_GENES",
     # Memory (Legacy)
     "MemoryItem",
     # Memory (New)
