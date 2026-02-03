@@ -24,6 +24,13 @@ from .knowledge_graph import (
     PathResult,
 )
 
+from .case_based_reasoner import (
+    CaseBasedReasoner,
+    Case,
+    CaseMatch,
+    CaseReasoningResult,
+)
+
 __all__ = [
     # Symbolic Reasoner
     "SymbolicReasoner",
@@ -36,4 +43,9 @@ __all__ = [
     "Node",
     "Edge",
     "PathResult",
+    # Case-Based Reasoner
+    "CaseBasedReasoner",
+    "Case",
+    "CaseMatch",
+    "CaseReasoningResult",
 ]
