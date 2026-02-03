@@ -31,6 +31,12 @@ from .case_based_reasoner import (
     CaseReasoningResult,
 )
 
+from .hypothesis_engine import (
+    HypothesisEngine,
+    Hypothesis,
+    HypothesisTest,
+)
+
 __all__ = [
     # Symbolic Reasoner
     "SymbolicReasoner",
@@ -48,4 +54,8 @@ __all__ = [
     "Case",
     "CaseMatch",
     "CaseReasoningResult",
+    # Hypothesis Engine
+    "HypothesisEngine",
+    "Hypothesis",
+    "HypothesisTest",
 ]
