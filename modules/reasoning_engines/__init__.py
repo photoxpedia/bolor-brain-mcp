@@ -37,6 +37,14 @@ from .hypothesis_engine import (
     HypothesisTest,
 )
 
+from .analogical_reasoner import (
+    AnalogicalReasoner,
+    Concept,
+    Analogy,
+    AnalogicalMapping,
+    MappingType,
+)
+
 __all__ = [
     # Symbolic Reasoner
     "SymbolicReasoner",
@@ -58,4 +66,10 @@ __all__ = [
     "HypothesisEngine",
     "Hypothesis",
     "HypothesisTest",
+    # Analogical Reasoner
+    "AnalogicalReasoner",
+    "Concept",
+    "Analogy",
+    "AnalogicalMapping",
+    "MappingType",
 ]
