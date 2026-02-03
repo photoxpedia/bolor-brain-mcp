@@ -17,6 +17,13 @@ from .symbolic_reasoner import (
     ReasoningResult,
 )
 
+from .knowledge_graph import (
+    KnowledgeGraph,
+    Node,
+    Edge,
+    PathResult,
+)
+
 __all__ = [
     # Symbolic Reasoner
     "SymbolicReasoner",
@@ -24,4 +31,9 @@ __all__ = [
     "FactType",
     "Rule",
     "ReasoningResult",
+    # Knowledge Graph
+    "KnowledgeGraph",
+    "Node",
+    "Edge",
+    "PathResult",
 ]
