@@ -340,12 +340,12 @@ class HybridReasoner:
         if len(relevant_nodes) >= 2:
             for i, source in enumerate(relevant_nodes[:3]):
                 for target in relevant_nodes[i+1:3]:
-                    path = self.kg.find_path(source.id, target.id)
-                    if path:
+                    path_result = self.kg.find_path(source.id, target.id)
+                    if path_result and path_result.found:
                         paths.append({
                             "from": source.label,
                             "to": target.label,
-                            "path": path.nodes,
+                            "path": path_result.path,
                         })
 
         # Get subgraph around first relevant node
