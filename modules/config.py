@@ -13,11 +13,14 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import dataclass, field, asdict
-from typing import Optional, Set, List
+from typing import Optional, Set, List, FrozenSet
 
 
 # Valid LLM providers
 VALID_PROVIDERS: Set[str] = {"openai", "anthropic", "ollama", "custom"}
+
+# Valid LLM use cases for the LLM bridge
+VALID_LLM_USE_CASES: FrozenSet[str] = frozenset({"synthesis", "creative", "ambiguous"})
 
 # Python version constraints
 MIN_PYTHON = (3, 11)
@@ -78,6 +81,8 @@ class Config:
     llm_api_key: Optional[str] = None
     llm_model: str = "llama3"
     llm_base_url: Optional[str] = None
+    llm_use_for: List[str] = field(default_factory=lambda: ["synthesis", "creative", "ambiguous"])
+    llm_fallback_to_symbolic: bool = True
 
     # Database settings
     database_path: str = "brain_mcp_storage/brain.db"
@@ -104,6 +109,7 @@ class Config:
         self._validate_reasoning_max_depth()
         self._validate_learning_rate()
         self._validate_framework_enabled_tiers()
+        self._validate_llm_use_for()
 
     def _validate_provider(self) -> None:
         """
@@ -157,6 +163,20 @@ class Config:
                 f"Valid tier values are 0-7."
             )
 
+    def _validate_llm_use_for(self) -> None:
+        """
+        Validate that llm_use_for contains only valid use case values.
+
+        Raises:
+            ValueError: If any use case is not in VALID_LLM_USE_CASES.
+        """
+        invalid_cases = [c for c in self.llm_use_for if c not in VALID_LLM_USE_CASES]
+        if invalid_cases:
+            raise ValueError(
+                f"llm_use_for contains invalid values: {invalid_cases}. "
+                f"Valid use cases are: {', '.join(sorted(VALID_LLM_USE_CASES))}"
+            )
+
     @classmethod
     def from_env(cls) -> Config:
         """
@@ -173,6 +193,8 @@ class Config:
         - BOLOR_EMBEDDING_MODEL: Embedding model name
         - BOLOR_REASONING_MAX_DEPTH: Max reasoning depth (int)
         - BOLOR_LEARNING_RATE: Learning rate (float)
+        - BOLOR_LLM_USE_FOR: Comma-separated list (synthesis,creative,ambiguous)
+        - BOLOR_LLM_FALLBACK_TO_SYMBOLIC: true/false
         - BOLOR_DEBUG: true/false
 
         Returns:
@@ -208,12 +230,20 @@ class Config:
                     )
             return default
 
+        def get_list(key: str, default: List[str]) -> List[str]:
+            value = os.environ.get(key)
+            if value is not None and value != "":
+                return [item.strip() for item in value.split(",") if item.strip()]
+            return default
+
         return cls(
             llm_enabled=get_bool("BOLOR_LLM_ENABLED", False),
             llm_provider=os.environ.get("BOLOR_LLM_PROVIDER", "ollama"),
             llm_api_key=os.environ.get("BOLOR_LLM_API_KEY"),
             llm_model=os.environ.get("BOLOR_LLM_MODEL", "llama3"),
             llm_base_url=os.environ.get("BOLOR_LLM_BASE_URL"),
+            llm_use_for=get_list("BOLOR_LLM_USE_FOR", ["synthesis", "creative", "ambiguous"]),
+            llm_fallback_to_symbolic=get_bool("BOLOR_LLM_FALLBACK_TO_SYMBOLIC", True),
             database_path=os.environ.get("BOLOR_DATABASE_PATH", "brain_mcp_storage/brain.db"),
             embedding_enabled=get_bool("BOLOR_EMBEDDING_ENABLED", False),
             embedding_model=os.environ.get("BOLOR_EMBEDDING_MODEL", "all-MiniLM-L6-v2"),
