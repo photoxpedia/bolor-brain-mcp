@@ -1,0 +1,221 @@
+============================================================
+LEGAL COMPLIANCE CHECKER
+============================================================
+
+DISCLAIMER: Demonstration only. Not legal advice.
+
+[1] Loading regulatory knowledge...
+    21 concepts, 26 relationships
+
+[2] Loading compliance rules...
+    6 rules
+
+[3] Loading case precedents...
+    4 precedents
+
+============================================================
+COMPLIANCE CHECK: HealthTech Startup
+============================================================
+
+Industry: healthcare
+Company type: startup
+User regions: ['US']
+Data processed: ['phi', 'pii']
+Processes payments: True
+Current controls: ['encryption', 'access_control']
+
+--- APPLICABLE REGULATIONS (Rule-Based) ---
+  PCI_DSS: payment_processing (confidence: 100%)
+
+--- REQUIRED CONTROLS ---
+  PCI_DSS requires: encryption (weight: 1.00)
+  PCI_DSS requires: access_control (weight: 0.95)
+  PCI_DSS requires: audit_logging (weight: 0.95)
+
+--- GAP ANALYSIS ---
+  Missing controls:
+    - audit_logging
+
+--- SIMILAR COMPANIES ---
+
+  Case: case_healthcare_app
+  Similarity: 100%
+  They needed: ['hipaa', 'pci_dss']
+  Time to comply: 6_months
+
+  Case: case_startup_saas
+  Similarity: 45%
+  They needed: ['gdpr', 'ccpa']
+  Time to comply: 3_months
+
+--- COMPLIANCE SUMMARY ---
+  Applicable regulations: 1
+  Required controls: 3
+  Current controls: 2
+  Missing controls: 1
+  Violations detected: 0
+
+  ** Implement missing controls before next audit **
+
+============================================================
+COMPLIANCE CHECK: Global SaaS Platform
+============================================================
+
+Industry: saas
+Company type: private
+User regions: ['US', 'EU', 'California']
+Data processed: ['pii']
+Processes payments: False
+Current controls: ['encryption']
+
+--- APPLICABLE REGULATIONS (Rule-Based) ---
+  GDPR: eu_presence (confidence: 95%)
+  CCPA: california_presence (confidence: 90%)
+
+--- REQUIRED CONTROLS ---
+  GDPR requires: consent (weight: 0.95)
+  GDPR requires: encryption (weight: 0.90)
+  GDPR requires: right_to_delete (weight: 0.95)
+  GDPR requires: breach_notification (weight: 0.95)
+  GDPR requires: data_minimization (weight: 0.90)
+  CCPA requires: consent (weight: 0.90)
+  CCPA requires: right_to_delete (weight: 0.95)
+
+--- GAP ANALYSIS ---
+  Missing controls:
+    - right_to_delete
+    - consent
+    - data_minimization
+    - breach_notification
+
+--- SIMILAR COMPANIES ---
+
+  Case: case_startup_saas
+  Similarity: 90%
+  They needed: ['gdpr', 'ccpa']
+  Time to comply: 3_months
+
+  Case: case_ecommerce
+  Similarity: 45%
+  They needed: ['gdpr', 'ccpa', 'pci_dss']
+  Time to comply: 4_months
+
+--- COMPLIANCE SUMMARY ---
+  Applicable regulations: 2
+  Required controls: 5
+  Current controls: 1
+  Missing controls: 4
+  Violations detected: 0
+
+  ** Implement missing controls before next audit **
+
+============================================================
+COMPLIANCE CHECK: E-Commerce Store
+============================================================
+
+Industry: ecommerce
+Company type: private
+User regions: ['US', 'EU']
+Data processed: ['pii', 'payment_data']
+Processes payments: True
+Current controls: ['encryption', 'consent']
+
+--- APPLICABLE REGULATIONS (Rule-Based) ---
+  PCI_DSS: payment_processing (confidence: 100%)
+  GDPR: eu_presence (confidence: 95%)
+
+--- REQUIRED CONTROLS ---
+  PCI_DSS requires: encryption (weight: 1.00)
+  PCI_DSS requires: access_control (weight: 0.95)
+  PCI_DSS requires: audit_logging (weight: 0.95)
+  GDPR requires: consent (weight: 0.95)
+  GDPR requires: encryption (weight: 0.90)
+  GDPR requires: right_to_delete (weight: 0.95)
+  GDPR requires: breach_notification (weight: 0.95)
+  GDPR requires: data_minimization (weight: 0.90)
+
+--- GAP ANALYSIS ---
+  Missing controls:
+    - access_control
+    - breach_notification
+    - audit_logging
+    - data_minimization
+    - right_to_delete
+
+--- SIMILAR COMPANIES ---
+
+  Case: case_ecommerce
+  Similarity: 100%
+  They needed: ['gdpr', 'ccpa', 'pci_dss']
+  Time to comply: 4_months
+
+  Case: case_fintech_public
+  Similarity: 50%
+  They needed: ['sox', 'pci_dss']
+  Time to comply: 8_months
+
+--- COMPLIANCE SUMMARY ---
+  Applicable regulations: 2
+  Required controls: 7
+  Current controls: 2
+  Missing controls: 5
+  Violations detected: 0
+
+  ** Implement missing controls before next audit **
+
+============================================================
+COMPLIANCE CHECK: Public FinTech Corp
+============================================================
+
+Industry: fintech
+Company type: public
+User regions: ['US']
+Data processed: ['pii', 'financial_records', 'payment_data']
+Processes payments: True
+Current controls: ['encryption', 'access_control', 'audit_logging']
+
+--- APPLICABLE REGULATIONS (Rule-Based) ---
+  PCI_DSS: payment_processing (confidence: 100%)
+  SOX: public_us_company (confidence: 95%)
+  VIOLATION: missing_encryption (confidence: 90%)
+
+--- REQUIRED CONTROLS ---
+  PCI_DSS requires: encryption (weight: 1.00)
+  PCI_DSS requires: access_control (weight: 0.95)
+  PCI_DSS requires: audit_logging (weight: 0.95)
+  SOX requires: audit_logging (weight: 1.00)
+  SOX requires: access_control (weight: 0.95)
+  SOX requires: data_retention (weight: 0.90)
+
+--- GAP ANALYSIS ---
+  Missing controls:
+    - data_retention
+
+--- SIMILAR COMPANIES ---
+
+  Case: case_fintech_public
+  Similarity: 100%
+  They needed: ['sox', 'pci_dss']
+  Time to comply: 8_months
+
+  Case: case_ecommerce
+  Similarity: 50%
+  They needed: ['gdpr', 'ccpa', 'pci_dss']
+  Time to comply: 4_months
+
+--- COMPLIANCE SUMMARY ---
+  Applicable regulations: 2
+  Required controls: 4
+  Current controls: 3
+  Missing controls: 1
+  Violations detected: 1
+
+  *** ACTION REQUIRED: Address violations immediately ***
+
+============================================================
+SUMMARY
+============================================================
+
+  Regulatory concepts: 21
+  Compliance rules: 6
+  Case precedents: 4

@@ -1,0 +1,190 @@
+============================================================
+MEDICAL TRIAGE ASSISTANT
+============================================================
+
+DISCLAIMER: Demonstration only. Not for actual medical use.
+
+[1] Loading medical knowledge graph...
+    21 concepts, 25 relationships
+
+[2] Loading triage rules...
+    5 rules
+
+[3] Loading patient cases...
+    4 historical cases
+
+============================================================
+PATIENT ASSESSMENT
+============================================================
+
+Symptoms: ['chest_pain', 'shortness_breath', 'dizziness']
+Duration: 30_minutes
+Age group: elderly
+Pre-existing conditions: ['hypertension']
+
+--- RULE-BASED ANALYSIS ---
+  TRIAGE: EMERGENCY (confidence: 95%)
+
+--- SYMPTOM-CONDITION MAPPING ---
+  cardiac_event: score=2.30 (urgency: emergency)
+  pneumonia: score=1.60 (urgency: high)
+  covid: score=0.80 (urgency: moderate)
+
+--- SIMILAR CASES ---
+
+  Case: patient_002
+  Similarity: 100%
+  Diagnosis: cardiac_event
+  Triage was: emergency
+  Treatment: immediate_er
+  Recovery: hospitalized
+
+--- RECOMMENDATION ---
+  *** EMERGENCY - SEEK IMMEDIATE CARE ***
+  Call emergency services or go to ER immediately
+
+  REASONING TRACE:
+  - Symptoms analyzed: 3
+  - Rules triggered: 1
+  - Conditions considered: 3
+  - Similar cases found: 1
+
+============================================================
+PATIENT ASSESSMENT
+============================================================
+
+Symptoms: ['fever', 'cough', 'body_aches', 'fatigue']
+Duration: 3_days
+Age group: adult
+Pre-existing conditions: []
+
+--- RULE-BASED ANALYSIS ---
+  Likely: influenza (confidence: 75%)
+
+--- SYMPTOM-CONDITION MAPPING ---
+  flu: score=2.50 (urgency: moderate)
+  covid: score=1.90 (urgency: moderate)
+  pneumonia: score=1.50 (urgency: high)
+
+--- SIMILAR CASES ---
+
+  Case: patient_001
+  Similarity: 100%
+  Diagnosis: influenza
+  Triage was: standard
+  Treatment: rest_fluids_antivirals
+  Recovery: 7_days
+
+  Case: patient_004
+  Similarity: 82%
+  Diagnosis: common_cold
+  Triage was: self_care
+  Treatment: rest_fluids
+  Recovery: 5_days
+
+--- RECOMMENDATION ---
+  Based on similar case (100% match):
+  Suggested triage: STANDARD
+  Suggested action: rest_fluids_antivirals
+
+  REASONING TRACE:
+  - Symptoms analyzed: 4
+  - Rules triggered: 1
+  - Conditions considered: 4
+  - Similar cases found: 2
+
+============================================================
+PATIENT ASSESSMENT
+============================================================
+
+Symptoms: ['cough', 'sore_throat']
+Duration: 2_days
+Age group: adult
+Pre-existing conditions: []
+
+--- RULE-BASED ANALYSIS ---
+  Likely: common_cold (confidence: 80%)
+  TRIAGE: SELF_CARE (confidence: 70%)
+
+--- SYMPTOM-CONDITION MAPPING ---
+  common_cold: score=1.50 (urgency: low)
+  pneumonia: score=0.80 (urgency: high)
+  covid: score=0.70 (urgency: moderate)
+
+--- SIMILAR CASES ---
+
+  Case: patient_004
+  Similarity: 100%
+  Diagnosis: common_cold
+  Triage was: self_care
+  Treatment: rest_fluids
+  Recovery: 5_days
+
+  Case: patient_001
+  Similarity: 84%
+  Diagnosis: influenza
+  Triage was: standard
+  Treatment: rest_fluids_antivirals
+  Recovery: 7_days
+
+--- RECOMMENDATION ---
+  Based on similar case (100% match):
+  Suggested triage: SELF_CARE
+  Suggested action: rest_fluids
+
+  REASONING TRACE:
+  - Symptoms analyzed: 2
+  - Rules triggered: 2
+  - Conditions considered: 4
+  - Similar cases found: 2
+
+============================================================
+PATIENT ASSESSMENT
+============================================================
+
+Symptoms: ['fever', 'cough', 'shortness_breath']
+Duration: 5_days
+Age group: adult
+Pre-existing conditions: ['diabetes']
+
+--- RULE-BASED ANALYSIS ---
+  TRIAGE: URGENT (confidence: 85%)
+
+--- SYMPTOM-CONDITION MAPPING ---
+  pneumonia: score=2.40 (urgency: high)
+  covid: score=2.10 (urgency: moderate)
+  flu: score=1.30 (urgency: moderate)
+
+--- SIMILAR CASES ---
+
+  Case: patient_003
+  Similarity: 100%
+  Diagnosis: pneumonia
+  Triage was: urgent
+  Treatment: antibiotics_monitoring
+  Recovery: 14_days
+
+  Case: patient_001
+  Similarity: 56%
+  Diagnosis: influenza
+  Triage was: standard
+  Treatment: rest_fluids_antivirals
+  Recovery: 7_days
+
+--- RECOMMENDATION ---
+  ** URGENT - See a doctor within hours **
+  Visit urgent care or contact your doctor today
+
+  REASONING TRACE:
+  - Symptoms analyzed: 3
+  - Rules triggered: 1
+  - Conditions considered: 5
+  - Similar cases found: 2
+
+============================================================
+SUMMARY
+============================================================
+
+  Medical concepts: 21
+  Triage rules: 5
+  Patient cases: 4

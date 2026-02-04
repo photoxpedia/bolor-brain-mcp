@@ -1,0 +1,242 @@
+============================================================
+INVESTMENT STRATEGY ADVISOR
+============================================================
+
+DISCLAIMER: Demonstration only. Not financial advice.
+
+[1] Loading investment knowledge...
+    27 concepts, 20 relationships
+
+[2] Loading investment rules...
+    6 rules
+
+[3] Loading portfolio cases...
+    5 successful portfolios
+
+============================================================
+INVESTOR PROFILE: Alex - Young Professional
+============================================================
+
+Age group: young
+Income level: medium
+Risk tolerance: high
+Primary goal: retirement
+Time horizon: long
+Has emergency fund: no
+Debt level: low
+
+--- RULE-BASED RECOMMENDATIONS ---
+  PRIORITY: build_emergency_fund_first (confidence: 95%)
+  Action: max_401k_ira_first (confidence: 90%)
+  Allocation: high_stock_allocation (confidence: 85%)
+
+--- STRATEGY ANALYSIS ---
+  retirement suggests: Growth Strategy (weight: 0.80)
+    - Risk level: high
+    - Time horizon: long
+  retirement suggests: Balanced Strategy (weight: 0.85)
+    - Risk level: medium
+    - Time horizon: medium
+
+--- SIMILAR INVESTOR PROFILES ---
+
+  Profile: young_professional
+  Similarity: 100%
+  Their strategy: aggressive_growth
+  Allocation: {'stocks': 90, 'bonds': 10}
+  Vehicles: ['index_funds', 'etfs']
+  Outcome: {'10_year_return': '12%_annualized', 'on_track': True}
+
+  Profile: house_saver
+  Similarity: 50%
+  Their strategy: balanced_short
+  Allocation: {'stocks': 40, 'bonds': 40, 'cash': 20}
+  Vehicles: ['balanced_funds', 'high_yield_savings']
+  Outcome: {'goal_reached': True, 'time_to_goal': '4.5_years'}
+
+--- PERSONALIZED RECOMMENDATION ---
+
+  First priorities:
+    1. Build Emergency Fund First
+
+  Suggested allocation:
+    - Stocks: 90%
+    - Bonds: 10%
+
+  Suggested vehicles:
+    - Index Funds
+    - Etfs
+
+  REASONING TRACE:
+  - Rules triggered: 3
+  - Strategies considered: 2
+  - Similar profiles found: 2
+
+============================================================
+INVESTOR PROFILE: Sam - Mid-Career Saver
+============================================================
+
+Age group: middle
+Income level: high
+Risk tolerance: moderate
+Primary goal: retirement
+Time horizon: long
+Has emergency fund: yes
+Debt level: low
+
+--- RULE-BASED RECOMMENDATIONS ---
+
+--- STRATEGY ANALYSIS ---
+  retirement suggests: Growth Strategy (weight: 0.80)
+    - Risk level: high
+    - Time horizon: long
+  retirement suggests: Balanced Strategy (weight: 0.85)
+    - Risk level: medium
+    - Time horizon: medium
+
+--- SIMILAR INVESTOR PROFILES ---
+
+  Profile: mid_career_balanced
+  Similarity: 100%
+  Their strategy: balanced
+  Allocation: {'stocks': 70, 'bonds': 20, 'real_estate': 10}
+  Vehicles: ['index_funds', 'reits', 'treasury_bonds']
+  Outcome: {'10_year_return': '9%_annualized', 'on_track': True}
+
+  Profile: near_retirement_conservative
+  Similarity: 50%
+  Their strategy: conservative
+  Allocation: {'stocks': 30, 'bonds': 60, 'cash': 10}
+  Vehicles: ['treasury_bonds', 'dividend_etfs']
+  Outcome: {'5_year_return': '5%_annualized', 'on_track': True}
+
+--- PERSONALIZED RECOMMENDATION ---
+
+  Suggested allocation:
+    - Stocks: 70%
+    - Bonds: 20%
+    - Real_Estate: 10%
+
+  Suggested vehicles:
+    - Index Funds
+    - Reits
+    - Treasury Bonds
+
+  REASONING TRACE:
+  - Rules triggered: 0
+  - Strategies considered: 2
+  - Similar profiles found: 2
+
+============================================================
+INVESTOR PROFILE: Jordan - Near Retirement
+============================================================
+
+Age group: near_retirement
+Income level: high
+Risk tolerance: low
+Primary goal: retirement
+Time horizon: short
+Has emergency fund: yes
+Debt level: none
+
+--- RULE-BASED RECOMMENDATIONS ---
+  Allocation: shift_to_bonds (confidence: 90%)
+
+--- STRATEGY ANALYSIS ---
+  retirement suggests: Growth Strategy (weight: 0.80)
+    - Risk level: high
+    - Time horizon: long
+  retirement suggests: Balanced Strategy (weight: 0.85)
+    - Risk level: medium
+    - Time horizon: medium
+
+--- SIMILAR INVESTOR PROFILES ---
+
+  Profile: near_retirement_conservative
+  Similarity: 100%
+  Their strategy: conservative
+  Allocation: {'stocks': 30, 'bonds': 60, 'cash': 10}
+  Vehicles: ['treasury_bonds', 'dividend_etfs']
+  Outcome: {'5_year_return': '5%_annualized', 'on_track': True}
+
+  Profile: mid_career_balanced
+  Similarity: 50%
+  Their strategy: balanced
+  Allocation: {'stocks': 70, 'bonds': 20, 'real_estate': 10}
+  Vehicles: ['index_funds', 'reits', 'treasury_bonds']
+  Outcome: {'10_year_return': '9%_annualized', 'on_track': True}
+
+--- PERSONALIZED RECOMMENDATION ---
+
+  Suggested allocation:
+    - Stocks: 30%
+    - Bonds: 60%
+    - Cash: 10%
+
+  Suggested vehicles:
+    - Treasury Bonds
+    - Dividend Etfs
+
+  REASONING TRACE:
+  - Rules triggered: 1
+  - Strategies considered: 2
+  - Similar profiles found: 2
+
+============================================================
+INVESTOR PROFILE: Taylor - House Saver
+============================================================
+
+Age group: young
+Income level: medium
+Risk tolerance: moderate
+Primary goal: house_down_payment
+Time horizon: medium
+Has emergency fund: yes
+Debt level: medium
+
+--- RULE-BASED RECOMMENDATIONS ---
+
+--- STRATEGY ANALYSIS ---
+  house_down_payment suggests: Balanced Strategy (weight: 0.80)
+    - Risk level: medium
+    - Time horizon: medium
+
+--- SIMILAR INVESTOR PROFILES ---
+
+  Profile: house_saver
+  Similarity: 100%
+  Their strategy: balanced_short
+  Allocation: {'stocks': 40, 'bonds': 40, 'cash': 20}
+  Vehicles: ['balanced_funds', 'high_yield_savings']
+  Outcome: {'goal_reached': True, 'time_to_goal': '4.5_years'}
+
+  Profile: young_professional
+  Similarity: 50%
+  Their strategy: aggressive_growth
+  Allocation: {'stocks': 90, 'bonds': 10}
+  Vehicles: ['index_funds', 'etfs']
+  Outcome: {'10_year_return': '12%_annualized', 'on_track': True}
+
+--- PERSONALIZED RECOMMENDATION ---
+
+  Suggested allocation:
+    - Stocks: 40%
+    - Bonds: 40%
+    - Cash: 20%
+
+  Suggested vehicles:
+    - Balanced Funds
+    - High Yield Savings
+
+  REASONING TRACE:
+  - Rules triggered: 0
+  - Strategies considered: 1
+  - Similar profiles found: 2
+
+============================================================
+SUMMARY
+============================================================
+
+  Investment concepts: 27
+  Advisory rules: 6
+  Portfolio cases: 5
