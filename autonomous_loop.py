@@ -21,6 +21,9 @@ from goal_decomposer import GoalDecomposer
 from progress_monitor import ProgressMonitor
 from claude_code_engine import ClaudeCodeEngine, ExecutionResult
 from modules.config import GUARDRAILS_CONFIG
+from state_manager import StateManager
+from approval_system import ApprovalSystem, ApprovalStatus
+from nsaf_client import NSAFClient, NSAFIntegration, FitnessMetrics
 
 
 class AgentState(Enum):
@@ -127,7 +130,8 @@ class AutonomousAgent:
     def __init__(self,
                  brain_client=None,
                  nsaf_client=None,
-                 guardrails_config=None):
+                 guardrails_config=None,
+                 state_dir=None):
         """
         Initialize autonomous agent
 
@@ -135,10 +139,15 @@ class AutonomousAgent:
             brain_client: Bolor Brain MCP client (will use actual MCP)
             nsaf_client: NSAF MCP client (will use actual MCP)
             guardrails_config: Safety configuration
+            state_dir: Directory for state persistence (default: .agent_state)
         """
         # Core components
         self.brain = brain_client or HybridReasoner()
-        self.nsaf = nsaf_client  # Will integrate with actual NSAF MCP
+
+        # NSAF integration - REAL client, ready to connect
+        nsaf_mcp_client = nsaf_client or NSAFClient()
+        self.nsaf = NSAFIntegration(nsaf_mcp_client)
+
         self.executor = ClaudeCodeEngine()
 
         # Orchestration components
@@ -149,15 +158,31 @@ class AutonomousAgent:
         # Safety
         self.guardrails = Guardrails(guardrails_config or GUARDRAILS_CONFIG)
 
+        # Persistence
+        self.state_manager = StateManager(state_dir)
+
+        # Approval system
+        self.approval_system = ApprovalSystem(
+            queue_dir=state_dir.replace('.agent_state', '.approval_queue') if state_dir else None,
+            timeout_seconds=300,  # 5 minute timeout
+            notification_callback=self._notify_approval_needed
+        )
+
         # State
         self.state = AgentState.IDLE
         self.current_goal = None
         self.start_time = None
         self.pending_approvals = []
+        self.session_id = None
+        self.completed_task_ids = []
+        self.failed_task_ids = []
+        self.execution_results = []
+        self.learnings = {}
 
     async def run_autonomous(self, goal: str,
                             max_duration: Optional[timedelta] = None,
-                            callback=None) -> Dict[str, Any]:
+                            callback=None,
+                            resume_session_id: str = None) -> Dict[str, Any]:
         """
         Main autonomous execution loop
 
@@ -167,12 +192,23 @@ class AutonomousAgent:
             goal: High-level goal (e.g., "Build documentation for Bolor Brain")
             max_duration: Optional time limit
             callback: Optional progress callback function
+            resume_session_id: Optional session ID to resume
 
         Returns:
             Execution report with results and learnings
         """
-        self.current_goal = goal
-        self.start_time = datetime.now()
+        # Check if resuming from saved state
+        if resume_session_id:
+            if await self._resume_from_state(resume_session_id):
+                print(f"♻️  Resumed session: {resume_session_id}\n")
+            else:
+                print(f"⚠️  Could not resume session, starting fresh\n")
+                self.current_goal = goal
+                self.start_time = datetime.now()
+        else:
+            self.current_goal = goal
+            self.start_time = datetime.now()
+            self.session_id = None
 
         try:
             # Phase 1: PLANNING
@@ -190,6 +226,9 @@ class AutonomousAgent:
             print(f"🚀 Starting autonomous execution...")
             print(f"📊 Total tasks: {len(plan.tasks)}\n")
 
+            # Save initial state
+            await self._save_state(plan)
+
             results = await self._execute_plan(plan, callback)
 
             # Phase 3: LEARNING
@@ -197,16 +236,30 @@ class AutonomousAgent:
             print(f"🧠 Learning from execution...\n")
 
             learnings = await self._learn_from_execution(results)
+            self.learnings = learnings
+
+            # Save final state
+            await self._save_state(plan, final=True)
 
             # Phase 4: COMPLETE
             self.state = AgentState.COMPLETE
 
             report = self._generate_report(goal, plan, results, learnings)
 
+            # Add NSAF evolution stats
+            evolution_stats = self.nsaf.get_evolution_stats()
+            report['nsaf_evolution_count'] = evolution_stats['evolution_count']
+            report['nsaf_available'] = evolution_stats['nsaf_available']
+
             print(f"✅ Goal complete!")
             print(f"⏱️  Duration: {report['duration']}")
             print(f"📚 Learnings stored: {report['learnings_count']}")
-            print(f"🔄 Evolutions: {report['evolutions_count']}\n")
+            print(f"🔄 Evolutions: {report['evolutions_count']}")
+            if evolution_stats['nsaf_available']:
+                print(f"✨ NSAF evolutions: {evolution_stats['evolution_count']}")
+            else:
+                print(f"ℹ️  NSAF: Not available (evolution ready when server connects)")
+            print()
 
             return report
 
@@ -278,11 +331,22 @@ class AutonomousAgent:
                 if result.success:
                     print(f"  ✓ Complete ({result.duration:.1f}s)")
                     self.scheduler.mark_complete(task)
+                    self.completed_task_ids.append(task.id)
                 else:
                     print(f"  ⚠️  Failed: {result.error}")
                     self.scheduler.mark_failed(task, result.error)
+                    self.failed_task_ids.append(task.id)
 
                 results.append(result)
+                self.execution_results.append({
+                    'task_id': task.id,
+                    'success': result.success,
+                    'duration': result.duration,
+                    'actions': result.actions_taken
+                })
+
+                # Save state after each task
+                await self._save_state(plan)
 
                 # Learn from outcome (immediate feedback)
                 await self._learn_from_task(task, result)
@@ -344,32 +408,42 @@ class AutonomousAgent:
 
     async def _evolve_strategy(self, plan: Any, results: List[ExecutionResult]):
         """
-        Evolve strategy using NSAF
+        Evolve strategy using NSAF - REAL integration
 
         Use learnings from execution to improve approach
         """
         self.state = AgentState.EVOLVING
         print(f"  🔄 Evolving strategy based on learnings...")
 
-        # Get learnings from Bolor Brain
-        performance_metrics = {
-            "success_rate": sum(1 for r in results if r.success) / len(results),
-            "avg_duration": sum(r.duration for r in results) / len(results),
-            "bottlenecks": [r.task for r in results if r.duration > 60]
+        # Check if NSAF is available
+        if not self.nsaf.client.is_available():
+            print(f"  ⚠️  NSAF server not available - evolution skipped")
+            print(f"  ℹ️  Agent will continue with current strategy")
+            self.state = AgentState.EXECUTING
+            return
+
+        # Prepare current strategy
+        current_strategy = {
+            "approach": "baseline",
+            "task_decomposition": "hybrid",
+            "scheduling": "dependency-based"
         }
 
-        # NSAF evolves improved strategy
-        # Will use actual NSAF MCP when integrated
-        # improved = await self.nsaf.run_nsaf_evolution({
-        #     "fitness_criteria": performance_metrics,
-        #     "population_size": 10,
-        #     "generations": 5
-        # })
+        # Evolve using NSAF - REAL MCP call
+        evolved_strategy = self.nsaf.evolve_agent_strategy(
+            current_strategy=current_strategy,
+            execution_results=results
+        )
 
-        # Update remaining tasks with improved strategy
-        # plan.schedule.update_strategy(improved)
+        if evolved_strategy:
+            print(f"  ✨ Strategy evolved successfully!")
+            print(f"  📈 Evolution count: {self.nsaf.evolution_count}")
 
-        print(f"  ✓ Strategy evolved\n")
+            # Update remaining tasks with evolved strategy
+            # plan.schedule.update_strategy(evolved_strategy)
+        else:
+            print(f"  ⚠️  Evolution failed - continuing with current strategy")
+
         self.state = AgentState.EXECUTING
 
     async def _learn_from_execution(self, results: List[ExecutionResult]) -> Dict[str, Any]:
@@ -427,18 +501,67 @@ class AutonomousAgent:
 
     async def _request_approval(self, task: Any) -> bool:
         """
-        Request human approval for high-risk action
+        Request human approval for high-risk action - REAL approval system
 
-        In production, this would:
-        - Send notification to user
-        - Wait for approval/denial
-        - Timeout after X minutes
+        Creates approval request, notifies user, and waits for response.
+        Uses real file-based approval queue.
 
-        For now, return True (auto-approve in dev mode)
+        Returns:
+            True if approved, False if denied/timeout
         """
-        # TODO: Implement actual approval mechanism
-        # For development, auto-approve
-        return True
+        # Create approval request
+        request_id = self.approval_system.request_approval(
+            action_type=task.type,
+            description=task.description,
+            risk_tier=self.guardrails.get_action_tier(task.to_dict()),
+            details={
+                'task_id': task.id,
+                'priority': task.priority,
+                'estimated_duration': str(task.estimated_duration)
+            }
+        )
+
+        self.pending_approvals.append(request_id)
+
+        # Wait for approval (with polling)
+        print(f"  ⏳ Waiting for approval (request: {request_id})...")
+
+        status = self.approval_system.wait_for_approval(request_id, poll_interval=2.0)
+
+        # Remove from pending
+        if request_id in self.pending_approvals:
+            self.pending_approvals.remove(request_id)
+
+        if status == ApprovalStatus.APPROVED:
+            print(f"  ✅ Approved by user")
+            return True
+        elif status == ApprovalStatus.DENIED:
+            print(f"  ❌ Denied by user")
+            return False
+        else:
+            print(f"  ⏱️  Approval timeout - denying by default")
+            return False
+
+    def _notify_approval_needed(self, request):
+        """
+        Notification callback for approval requests
+
+        This gets called when an approval request is created.
+        Can be customized to send notifications via various channels.
+        """
+        print("\n" + "="*60)
+        print("⚠️  APPROVAL REQUIRED")
+        print("="*60)
+        print(f"Action: {request.action_type}")
+        print(f"Description: {request.description}")
+        print(f"Risk Tier: Tier {request.risk_tier}")
+        print(f"Request ID: {request.request_id}")
+        print(f"\nTo approve, run in another terminal:")
+        print(f"  python approval_system.py approve {request.request_id}")
+        print(f"\nTo deny:")
+        print(f"  python approval_system.py deny {request.request_id}")
+        print(f"\nTimeout: {request.expires_at}")
+        print("="*60 + "\n")
 
     def get_status(self) -> AgentStatus:
         """Get current agent status"""
@@ -470,6 +593,105 @@ class AutonomousAgent:
         """Stop autonomous execution"""
         self.state = AgentState.IDLE
         self.current_goal = None
+
+    async def _save_state(self, plan: Any, final: bool = False):
+        """
+        Save current agent state to disk - REAL file operation
+
+        Args:
+            plan: Current execution plan
+            final: Whether this is the final state save
+        """
+        state_data = {
+            'session_id': self.session_id,
+            'goal': self.current_goal,
+            'state': self.state.value,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'current_task_id': None,  # Could track from scheduler
+            'tasks_total': len(plan.tasks),
+            'tasks_completed': len(self.completed_task_ids),
+            'tasks_failed': len(self.failed_task_ids),
+            'completed_task_ids': self.completed_task_ids,
+            'failed_task_ids': self.failed_task_ids,
+            'learnings_count': len(self.learnings.get('patterns', {}).get('successful_strategies', [])),
+            'evolutions_count': 0,
+            'execution_results': self.execution_results,
+            'learnings': self.learnings
+        }
+
+        try:
+            state_file = self.state_manager.save_state(state_data)
+
+            # Set session ID from state manager if not set
+            if not self.session_id:
+                self.session_id = self.state_manager.current_session_id
+
+            if not final:
+                # Don't spam during execution
+                pass
+            else:
+                print(f"💾 State saved: {state_file}")
+
+        except Exception as e:
+            print(f"⚠️  Warning: Could not save state: {e}")
+
+    async def _resume_from_state(self, session_id: str) -> bool:
+        """
+        Resume execution from saved state - REAL file operation
+
+        Args:
+            session_id: Session ID to resume
+
+        Returns:
+            True if successfully resumed, False otherwise
+        """
+        try:
+            state_data = self.state_manager.load_state(session_id)
+
+            if not state_data:
+                return False
+
+            # Restore state
+            self.session_id = state_data['session_id']
+            self.current_goal = state_data['goal']
+            self.state = AgentState(state_data['state'])
+            self.start_time = datetime.fromisoformat(state_data['start_time'])
+            self.completed_task_ids = state_data['completed_task_ids']
+            self.failed_task_ids = state_data['failed_task_ids']
+            self.execution_results = state_data['execution_results']
+            self.learnings = state_data['learnings']
+
+            print(f"✅ Restored state:")
+            print(f"   Goal: {self.current_goal}")
+            print(f"   Progress: {state_data['tasks_completed']}/{state_data['tasks_total']}")
+            print(f"   Elapsed: {datetime.now() - self.start_time}")
+
+            return True
+
+        except Exception as e:
+            print(f"❌ Failed to resume state: {e}")
+            return False
+
+    def list_sessions(self) -> list:
+        """
+        List all saved sessions - REAL file operation
+
+        Returns:
+            List of session info
+        """
+        return self.state_manager.list_sessions()
+
+    def delete_session(self, session_id: str) -> bool:
+        """
+        Delete a saved session - REAL file operation
+
+        Args:
+            session_id: Session to delete
+
+        Returns:
+            True if deleted
+        """
+        return self.state_manager.delete_state(session_id)
 
 
 # Example usage
