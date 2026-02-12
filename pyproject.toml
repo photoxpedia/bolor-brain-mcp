@@ -7,7 +7,7 @@ name = "bolor-brain-mcp"
 version = "1.0.0"
 description = "Cognitive reasoning architecture for AI - MCP server for Claude Code"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Bolorerdene Bundgaa", email = "your@email.com"}
 ]
@@ -15,7 +15,6 @@ requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
