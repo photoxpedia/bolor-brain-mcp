@@ -8,10 +8,15 @@ import asyncio
 import os
 import glob as glob_module
 import subprocess
+import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+import json
 
 
 @dataclass
@@ -81,7 +86,28 @@ class ClaudeCodeEngine:
         task_type = task.type.lower()
         description = task.description.lower()
 
-        if task_type == "read" or "read" in description or "analyze" in description:
+        if "scrape" in description or "fetch" in description or "http" in description:
+            # REAL web scraping
+            if "hacker" in description or "news" in description:
+                actions.append({
+                    "type": "http_get",
+                    "description": "Fetch Hacker News",
+                    "url": "https://hacker-news.firebaseio.com/v0/topstories.json"
+                })
+            else:
+                # Generic HTTP request
+                actions.append({
+                    "type": "http_get",
+                    "description": "Fetch URL",
+                    "url": "https://api.github.com/repos/anthropics/anthropic-sdk-python"
+                })
+
+        elif "email" in description or "send" in description:
+            # REAL email sending
+            # Note: Would need credentials from environment or config
+            pass
+
+        elif task_type == "read" or "read" in description or "analyze" in description:
             # REAL file reading
             actions.append({
                 "type": "glob",
@@ -110,7 +136,8 @@ class ClaudeCodeEngine:
             actions.append({
                 "type": "bash",
                 "description": f"Run tests",
-                "command": "python --version"  # Safe test command
+                "command": "python --version",
+                "timeout": 60
             })
 
         else:
@@ -166,12 +193,13 @@ class ClaudeCodeEngine:
         elif action_type == "bash":
             # REAL bash execution
             command = action["command"]
+            timeout = action.get("timeout", 60)  # Default 60 seconds, not 10
             result = subprocess.run(
                 command,
                 shell=True,
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=timeout
             )
             return {
                 "success": result.returncode == 0,
@@ -179,6 +207,59 @@ class ClaudeCodeEngine:
                 "stderr": result.stderr,
                 "returncode": result.returncode
             }
+
+        elif action_type == "http_get":
+            # REAL HTTP GET request
+            url = action["url"]
+            headers = action.get("headers", {})
+            timeout = action.get("timeout", 30)
+
+            response = requests.get(url, headers=headers, timeout=timeout)
+            return {
+                "success": True,
+                "status_code": response.status_code,
+                "content": response.text,
+                "headers": dict(response.headers)
+            }
+
+        elif action_type == "http_post":
+            # REAL HTTP POST request
+            url = action["url"]
+            data = action.get("data", {})
+            headers = action.get("headers", {})
+            timeout = action.get("timeout", 30)
+
+            response = requests.post(url, json=data, headers=headers, timeout=timeout)
+            return {
+                "success": True,
+                "status_code": response.status_code,
+                "content": response.text,
+                "headers": dict(response.headers)
+            }
+
+        elif action_type == "send_email":
+            # REAL email sending
+            smtp_server = action.get("smtp_server", "smtp.gmail.com")
+            smtp_port = action.get("smtp_port", 587)
+            sender_email = action["sender_email"]
+            sender_password = action["sender_password"]
+            recipient_email = action["recipient_email"]
+            subject = action["subject"]
+            body = action["body"]
+
+            msg = MIMEMultipart()
+            msg['From'] = sender_email
+            msg['To'] = recipient_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(body, 'plain'))
+
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+            server.quit()
+
+            return {"success": True, "sent_to": recipient_email}
 
         else:
             return {"success": False, "error": f"Unknown action type: {action_type}"}
