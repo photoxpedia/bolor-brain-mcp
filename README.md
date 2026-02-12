@@ -1,10 +1,66 @@
 # Bolor Brain MCP
 
-**The Universal Thinking MCP** - A comprehensive reasoning and cognitive architecture for AI systems.
+**The Universal Reasoning Toolkit for Claude Code** - Give Claude structured thinking capabilities through multiple reasoning engines.
 
-## Overview
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
-Bolor Brain MCP provides a unified interface to multiple reasoning approaches:
+## What is Bolor Brain?
+
+Bolor Brain is an **MCP server** that extends Claude Code with powerful reasoning capabilities. Instead of just pattern matching, Claude can now:
+- 🧠 Use symbolic logic for deduction
+- 🕸️ Traverse knowledge graphs
+- 📚 Learn from past cases
+- 🔬 Generate and test hypotheses
+- 🔄 Transfer patterns between domains
+
+All through simple tool calls in your Claude Code conversations.
+
+## Quick Start
+
+### 1. Install
+
+```bash
+git clone https://github.com/photoxpedia/bolor-brain-mcp.git
+cd bolor-brain-mcp
+pip install -e .
+```
+
+### 2. Configure Claude Code
+
+Add to `~/.claude/mcp-config.json`:
+
+```json
+{
+  "mcpServers": {
+    "bolor-brain": {
+      "command": "python",
+      "args": ["-m", "mcp_server"],
+      "cwd": "/path/to/bolor-brain-mcp"
+    }
+  }
+}
+```
+
+### 3. Use in Claude Code
+
+```
+You: Use reason_hybrid to explain why my API is slow under load
+
+Claude: [calls bolor-brain reasoning tools]
+→ Problem type: diagnosis
+→ Approaches used: hypothesis + case-based
+→ Likely cause: connection pool exhausted (confidence: 85%)
+→ Evidence: Similar to incident INC-2024-001
+→ Recommended fix: Increase max_connections from 100 to 200
+```
+
+**That's it!** Claude now has structured reasoning.
+
+## Reasoning Engines
+
+Bolor Brain provides 6 reasoning approaches accessible via MCP tools:
 
 | Engine | Description |
 |--------|-------------|
@@ -15,15 +71,99 @@ Bolor Brain MCP provides a unified interface to multiple reasoning approaches:
 | **Analogical Reasoner** | Cross-domain pattern transfer using Structure-Mapping |
 | **Hybrid Reasoner** | Orchestrates all approaches with ONE call |
 
-## Installation
+## MCP Tools
 
-```bash
-git clone https://github.com/photoxpedia/bolor-brain-mcp.git
-cd bolor-brain-mcp
-pip install -r requirements.txt
+Claude Code can call these tools directly:
+
+| Tool | Purpose | Example Use |
+|------|---------|-------------|
+| `reason_hybrid` ⭐ | Auto-select best approach | "Why is my system crashing?" |
+| `reason_symbolic` | Logical deduction | "If X causes Y, and Y causes Z..." |
+| `reason_knowledge_graph` | Explore relationships | "How are Python and ML connected?" |
+| `reason_case_based` | Learn from experience | "We had this bug before..." |
+| `reason_hypothesis` | Test theories | "What could cause this symptom?" |
+| `reason_analogical` | Cross-domain transfer | "Atom is like solar system..." |
+| `store_case` | Save for learning | Store successful solutions |
+| `add_knowledge` | Teach the brain | Add domain facts/rules |
+
+## Real-World Usage
+
+### Debugging with Claude Code
+
+```
+You: My API returns 500 errors under high load. Diagnose the issue.
+
+Claude: Let me use Bolor Brain to analyze this systematically.
+[calls reason_hybrid tool]
+
+Result:
+┌─ Diagnosis ────────────────────────────────────────┐
+│ Problem Type: diagnosis                             │
+│ Approaches: hypothesis + case-based                 │
+│                                                      │
+│ Root Cause: Connection pool exhausted (85% conf)    │
+│ Evidence: Found similar case INC-2024-001 (95%)     │
+│ Past Solution: Increased pool from 100 → 200        │
+│ Recommendation: Apply same fix                      │
+└─────────────────────────────────────────────────────┘
+
+Claude: Based on the reasoning, your issue matches a past incident
+where the database connection pool was exhausted. The fix was to
+increase max_connections in your config from 100 to 200.
 ```
 
-## Quick Start
+### Technical Decisions
+
+```
+You: Should I use PyTorch or JAX for our new ML project?
+Context: We have TPUs, team size is 5, focus on research
+
+Claude: [calls reason_hybrid with full context]
+
+Result:
+┌─ Decision Analysis ─────────────────────────────────┐
+│ Problem Type: decision                               │
+│ Approaches: symbolic + knowledge graph + case-based  │
+│                                                       │
+│ Recommendation: JAX (confidence: 87%)                │
+│                                                       │
+│ Reasoning:                                           │
+│ • TPU optimization: JAX is designed for TPUs         │
+│ • Past success: Similar research teams used JAX      │
+│ • Knowledge graph: JAX→TPU edge weight: 0.95         │
+│ • Rule fired: "tpu_suggests_jax" (priority: high)    │
+└──────────────────────────────────────────────────────┘
+```
+
+## How It Works
+
+When you call `reason_hybrid`, the brain:
+1. **Detects problem type** from your query (deduction, diagnosis, planning, etc.)
+2. **Selects best approaches** automatically
+3. **Combines results** from multiple reasoning engines
+4. **Returns conclusions** with confidence scores and reasoning trace
+
+| Problem Type | Detects From | Uses |
+|--------------|--------------|------|
+| **Deduction** | "conclude", "deduce", "infer" | Symbolic + Graph |
+| **Diagnosis** | "why", "cause", "diagnose" | Hypothesis + Case-Based |
+| **Planning** | "how to", "steps", "plan" | Graph + Case-Based |
+| **Decision** | "should I", "choose", "recommend" | All approaches |
+| **Analogy** | "similar", "like", "analogous" | Analogical + Case-Based |
+| **Classification** | "what type", "classify" | Case-Based + Symbolic |
+
+## Documentation
+
+### For Claude Code Users
+
+- **[MCP Setup Guide](MCP_SETUP.md)** - Complete installation and usage guide
+- **[Tool Reference](MCP_SETUP.md#available-tools)** - All available MCP tools
+- **[Usage Patterns](MCP_SETUP.md#usage-patterns)** - Common workflows
+- **[Troubleshooting](MCP_SETUP.md#troubleshooting)** - Fix common issues
+
+### For Python Developers
+
+The reasoning engines can also be used directly in Python:
 
 ```python
 from modules import HybridReasoner, Fact, Node, Edge, Case
@@ -32,76 +172,14 @@ from modules import HybridReasoner, Fact, Node, Edge, Case
 brain = HybridReasoner()
 
 # Add knowledge
-brain.add_fact(Fact(subject="python", predicate="is_a", object="language"))
-brain.add_node(Node(id="python", label="Python"))
-brain.add_node(Node(id="web", label="Web Development"))
-brain.add_edge(Edge(source="python", target="web", relation="used_for"))
+brain.add_fact(Fact("python", "is", "language"))
+brain.add_node(Node("python", "Python"))
+brain.add_edge(Edge("python", "web", "used_for"))
 
-# ONE CALL - brain handles everything
+# Reason
 result = brain.reason({"query": "What is Python used for?"})
-
-print(f"Problem Type: {result.problem_type.value}")
 print(f"Confidence: {result.confidence:.2%}")
-print(f"Approaches: {[a.value for a in result.approaches_used]}")
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      HybridReasoner                          │
-│              brain.reason() - Single Entry Point             │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌───────────────────┐    │
-│  │  Symbolic   │  │  Knowledge  │  │    Case-Based     │    │
-│  │  Reasoner   │  │    Graph    │  │     Reasoner      │    │
-│  │             │  │             │  │                   │    │
-│  │ • Facts     │  │ • Nodes     │  │ • Cases           │    │
-│  │ • Rules     │  │ • Edges     │  │ • 4R Cycle        │    │
-│  │ • Chaining  │  │ • BFS/DFS   │  │ • Similarity      │    │
-│  │ • Inference │  │ • PageRank  │  │ • Adaptation      │    │
-│  └─────────────┘  └─────────────┘  └───────────────────┘    │
-│                                                              │
-│  ┌─────────────┐  ┌───────────────────────────────────┐     │
-│  │ Hypothesis  │  │       Analogical Reasoner         │     │
-│  │   Engine    │  │                                   │     │
-│  │             │  │ • Concepts & Domains              │     │
-│  │ • Generate  │  │ • Structure Mapping               │     │
-│  │ • Test      │  │ • Pattern Transfer                │     │
-│  │ • Rank      │  │ • Cross-Domain Inference          │     │
-│  └─────────────┘  └───────────────────────────────────┘     │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Problem Types
-
-The brain auto-detects problem type and selects appropriate approaches:
-
-| Type | Keywords | Approaches |
-|------|----------|------------|
-| Deduction | "conclude", "deduce" | Symbolic, Graph |
-| Abduction | "why", "cause", "explain" | Hypothesis, Symbolic |
-| Analogy | "similar", "like" | Analogical, Case-Based |
-| Planning | "how to", "steps" | Graph, Case-Based |
-| Diagnosis | "diagnose", "problem" | Hypothesis, Case-Based |
-| Classification | "classify", "type of" | Case-Based, Symbolic |
-| Exploration | "what", "find" | Graph, Analogical |
-
-## API
-
-### Main Interface
-
-```python
-# Full reasoning with options
-result = brain.reason({
-    "query": "your question",
-    "context": {"domain": "...", "goal": "..."}
-})
-
-# Quick reasoning - just pass a string
-result = brain.quick_reason("your question")
+print(f"Result: {result.combined_result}")
 ```
 
 ### Adding Knowledge
