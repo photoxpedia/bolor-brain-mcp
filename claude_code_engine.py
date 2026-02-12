@@ -6,7 +6,7 @@ agent can use them programmatically.
 """
 
 import asyncio
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -21,10 +21,6 @@ class ExecutionResult:
     error: Optional[str] = None
     quality_score: float = 1.0
     output: Any = None
-
-    def __post_init__(self):
-        if self.error is None:
-            from typing import Optional
 
 
 class ClaudeCodeEngine:

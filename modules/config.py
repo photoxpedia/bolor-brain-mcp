@@ -298,5 +298,21 @@ def set_config(config: Config) -> None:
     _global_config = config
 
 
+# Guardrails configuration for autonomous agent
+# From AGENT_GUARDRAILS.md - 4-tier permission model
+GUARDRAILS_CONFIG = {
+    "approval_tier": 2,  # Tier 2+ requires approval
+    "blocked_patterns": [
+        "rm -rf /",
+        "DROP DATABASE",
+        "DELETE FROM",
+        "format",
+        "mkfs",
+    ],
+    "max_file_size": 10_000_000,  # 10MB
+    "max_execution_time": 300,  # 5 minutes per task
+}
+
+
 # Validate Python version on module import
 validate_python_version()

@@ -226,12 +226,13 @@ class AutonomousAgent:
         plan = self.decomposer.decompose(goal)
         print(f"  ✓ Identified {len(plan.tasks)} task clusters\n")
 
-        # 2. Create schedule
+        # 2. Create schedule (scheduler now has the tasks)
         print("  📅 Creating execution schedule...")
         schedule = self.scheduler.create_schedule(plan.tasks)
         print(f"  ✓ Schedule created (estimated: {schedule.estimated_duration})\n")
 
         plan.schedule = schedule
+        # Note: self.scheduler now manages the tasks
         return plan
 
     async def _execute_plan(self, plan: Any, callback=None) -> List[ExecutionResult]:
@@ -242,9 +243,9 @@ class AutonomousAgent:
         """
         results = []
 
-        while not plan.schedule.is_complete():
+        while not self.scheduler.is_complete():
             # Get next task
-            task = plan.schedule.get_next_task()
+            task = self.scheduler.get_next_task()
 
             if not task:
                 # No tasks ready (waiting on dependencies)
@@ -276,10 +277,10 @@ class AutonomousAgent:
 
                 if result.success:
                     print(f"  ✓ Complete ({result.duration:.1f}s)")
-                    plan.schedule.mark_complete(task)
+                    self.scheduler.mark_complete(task)
                 else:
                     print(f"  ⚠️  Failed: {result.error}")
-                    plan.schedule.mark_failed(task, result.error)
+                    self.scheduler.mark_failed(task, result.error)
 
                 results.append(result)
 
@@ -296,7 +297,7 @@ class AutonomousAgent:
 
             except Exception as e:
                 print(f"  ❌ Exception: {e}")
-                plan.schedule.mark_failed(task, str(e))
+                self.scheduler.mark_failed(task, str(e))
 
             print()  # Blank line between tasks
 
