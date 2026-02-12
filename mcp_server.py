@@ -45,11 +45,19 @@ from modules import (
     ProblemType,
 )
 
+# Autonomous agent components
+from autonomous_loop import AutonomousAgent, AgentState
+from task_scheduler import TaskScheduler
+from goal_decomposer import GoalDecomposer
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Global brain instance
 brain = HybridReasoner()
+
+# Global autonomous agent instance
+autonomous_agent = None  # Initialized when first needed
 
 
 class BolorBrainServer:
@@ -341,6 +349,76 @@ class BolorBrainServer:
                         "properties": {},
                     },
                 ),
+                # Autonomous Agent Tools
+                Tool(
+                    name="run_autonomous",
+                    description=(
+                        "Run Claude Code in autonomous mode - like OpenClaw, but secure. "
+                        "Give a high-level goal and the agent works independently: decomposes "
+                        "the goal, creates a schedule, executes tasks, learns from outcomes, "
+                        "and evolves strategies. Features 4-tier security guardrails, Bolor Brain "
+                        "memory, and NSAF evolution. Use this to turn manual workflows into "
+                        "autonomous execution."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "goal": {
+                                "type": "string",
+                                "description": "High-level goal (e.g., 'Build documentation for Bolor Brain')",
+                            },
+                            "max_duration_minutes": {
+                                "type": "number",
+                                "description": "Optional time limit in minutes (default: unlimited)",
+                            },
+                        },
+                        "required": ["goal"],
+                    },
+                ),
+                Tool(
+                    name="get_autonomous_status",
+                    description=(
+                        "Get current status of autonomous execution. Returns progress, "
+                        "current task, time elapsed, estimated completion, learnings count, "
+                        "and evolution count."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                    },
+                ),
+                Tool(
+                    name="pause_autonomous",
+                    description=(
+                        "Pause autonomous execution. Current task will complete, then pause. "
+                        "Use resume_autonomous to continue."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                    },
+                ),
+                Tool(
+                    name="resume_autonomous",
+                    description=(
+                        "Resume paused autonomous execution."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                    },
+                ),
+                Tool(
+                    name="stop_autonomous",
+                    description=(
+                        "Stop autonomous execution immediately. Progress is saved. "
+                        "Can resume later with a new run_autonomous call."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                    },
+                ),
             ]
 
         @self.server.call_tool()
@@ -365,6 +443,17 @@ class BolorBrainServer:
                     result = await self._add_knowledge(arguments)
                 elif name == "get_stats":
                     result = await self._get_stats(arguments)
+                # Autonomous agent tools
+                elif name == "run_autonomous":
+                    result = await self._run_autonomous(arguments)
+                elif name == "get_autonomous_status":
+                    result = await self._get_autonomous_status(arguments)
+                elif name == "pause_autonomous":
+                    result = await self._pause_autonomous(arguments)
+                elif name == "resume_autonomous":
+                    result = await self._resume_autonomous(arguments)
+                elif name == "stop_autonomous":
+                    result = await self._stop_autonomous(arguments)
                 else:
                     result = {"error": f"Unknown tool: {name}"}
 
@@ -643,6 +732,130 @@ class BolorBrainServer:
         """Get brain statistics."""
         stats = brain.get_stats()
         return stats
+
+    # === Autonomous Agent Tool Implementations ===
+
+    async def _run_autonomous(self, args: dict) -> dict:
+        """Run autonomous agent with goal."""
+        global autonomous_agent
+
+        goal = args["goal"]
+        max_duration_minutes = args.get("max_duration_minutes")
+
+        # Initialize agent if not exists
+        if autonomous_agent is None:
+            autonomous_agent = AutonomousAgent(
+                brain_client=brain,
+                nsaf_client=None,  # Will connect to NSAF MCP when available
+            )
+
+        # Convert max_duration to timedelta
+        from datetime import timedelta
+        max_duration = None
+        if max_duration_minutes:
+            max_duration = timedelta(minutes=max_duration_minutes)
+
+        # Run autonomously
+        try:
+            report = await autonomous_agent.run_autonomous(
+                goal=goal,
+                max_duration=max_duration
+            )
+
+            return {
+                "success": True,
+                "status": "complete",
+                "goal": report["goal"],
+                "duration": report["duration"],
+                "tasks_completed": report["tasks_completed"],
+                "tasks_failed": report["tasks_failed"],
+                "success_rate": report["success_rate"],
+                "learnings_count": report["learnings_count"],
+                "evolutions_count": report["evolutions_count"],
+            }
+
+        except Exception as e:
+            logger.exception("Error in autonomous execution")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Autonomous execution failed"
+            }
+
+    async def _get_autonomous_status(self, args: dict) -> dict:
+        """Get autonomous agent status."""
+        global autonomous_agent
+
+        if autonomous_agent is None:
+            return {
+                "status": "not_started",
+                "message": "No autonomous execution running"
+            }
+
+        status = autonomous_agent.get_status()
+
+        return {
+            "state": status.state.value,
+            "current_task": status.current_task,
+            "progress": f"{status.progress:.1%}",
+            "tasks_completed": status.tasks_completed,
+            "tasks_total": status.tasks_total,
+            "time_elapsed": str(status.time_elapsed),
+            "estimated_completion": str(status.estimated_completion) if status.estimated_completion else None,
+            "learnings_count": status.learnings_count,
+            "evolutions_count": status.evolutions_count,
+        }
+
+    async def _pause_autonomous(self, args: dict) -> dict:
+        """Pause autonomous execution."""
+        global autonomous_agent
+
+        if autonomous_agent is None:
+            return {
+                "success": False,
+                "message": "No autonomous execution running"
+            }
+
+        autonomous_agent.pause()
+
+        return {
+            "success": True,
+            "message": "Autonomous execution paused. Current task will complete."
+        }
+
+    async def _resume_autonomous(self, args: dict) -> dict:
+        """Resume autonomous execution."""
+        global autonomous_agent
+
+        if autonomous_agent is None:
+            return {
+                "success": False,
+                "message": "No autonomous execution to resume"
+            }
+
+        autonomous_agent.resume()
+
+        return {
+            "success": True,
+            "message": "Autonomous execution resumed"
+        }
+
+    async def _stop_autonomous(self, args: dict) -> dict:
+        """Stop autonomous execution."""
+        global autonomous_agent
+
+        if autonomous_agent is None:
+            return {
+                "success": False,
+                "message": "No autonomous execution running"
+            }
+
+        autonomous_agent.stop()
+
+        return {
+            "success": True,
+            "message": "Autonomous execution stopped. Progress saved."
+        }
 
     async def run(self):
         """Run the MCP server."""
