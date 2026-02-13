@@ -1,10 +1,8 @@
 """
 Tests for the configuration system.
 
-TDD: These tests are written BEFORE the implementation.
-The config system must support:
-- Standalone mode (LLM disabled by default)
-- LLM-enhanced mode (optional)
+The config system supports:
+- Reasoning and persistence settings
 - Environment variable configuration
 - Python version validation
 """
@@ -23,92 +21,73 @@ import pytest
 class TestConfigDefaults:
     """Test default configuration values."""
 
-    def test_default_config_has_llm_disabled(self):
-        """Default config should have LLM disabled for standalone mode."""
+    def test_default_reasoning_max_depth(self):
+        """Default reasoning_max_depth should be 10."""
         from modules.config import Config
 
         config = Config()
-        assert config.llm_enabled is False, "Default config should have LLM disabled"
+        assert config.reasoning_max_depth == 10
 
-    def test_default_provider_is_ollama(self):
-        """Default provider should be ollama (local, free)."""
+    def test_default_learning_rate(self):
+        """Default learning_rate should be 0.1."""
         from modules.config import Config
 
         config = Config()
-        assert config.llm_provider == "ollama"
+        assert config.learning_rate == 0.1
 
-
-class TestConfigLLMSettings:
-    """Test LLM configuration options."""
-
-    def test_config_accepts_llm_settings(self):
-        """Config should accept LLM settings when provided."""
+    def test_default_persistence_dir(self):
+        """Default persistence_dir should be ~/.bolor-brain."""
         from modules.config import Config
 
-        config = Config(
-            llm_enabled=True,
-            llm_provider="openai",
-            llm_api_key="test-key",
-            llm_model="gpt-4"
-        )
+        config = Config()
+        assert config.persistence_dir == "~/.bolor-brain"
 
-        assert config.llm_enabled is True
-        assert config.llm_provider == "openai"
-        assert config.llm_api_key == "test-key"
-        assert config.llm_model == "gpt-4"
-
-    def test_invalid_provider_raises(self):
-        """Invalid LLM provider should raise ValueError."""
+    def test_default_debug(self):
+        """Default debug should be False."""
         from modules.config import Config
 
-        with pytest.raises(ValueError, match="Invalid LLM provider"):
-            Config(llm_provider="invalid_provider")
-
-    def test_enabled_without_provider_uses_default(self):
-        """Enabling LLM without specifying provider should use default."""
-        from modules.config import Config
-
-        config = Config(llm_enabled=True)
-        assert config.llm_enabled is True
-        assert config.llm_provider == "ollama"  # Default provider
-
-    def test_valid_providers(self):
-        """All valid providers should be accepted."""
-        from modules.config import Config, VALID_PROVIDERS
-
-        for provider in VALID_PROVIDERS:
-            config = Config(llm_provider=provider)
-            assert config.llm_provider == provider
+        config = Config()
+        assert config.debug is False
 
 
 class TestConfigFromEnvironment:
     """Test loading configuration from environment variables."""
 
-    def test_config_from_env(self, monkeypatch):
-        """Config should load settings from BOLOR_* environment variables."""
+    def test_config_from_env_reasoning_max_depth(self, monkeypatch):
+        """Config should load reasoning_max_depth from BOLOR_REASONING_MAX_DEPTH."""
         from modules.config import Config
 
-        # Set environment variables
-        monkeypatch.setenv("BOLOR_LLM_ENABLED", "true")
-        monkeypatch.setenv("BOLOR_LLM_PROVIDER", "anthropic")
-        monkeypatch.setenv("BOLOR_LLM_API_KEY", "env-test-key")
-        monkeypatch.setenv("BOLOR_LLM_MODEL", "claude-3-opus")
+        monkeypatch.setenv("BOLOR_REASONING_MAX_DEPTH", "50")
 
         config = Config.from_env()
+        assert config.reasoning_max_depth == 50
 
-        assert config.llm_enabled is True
-        assert config.llm_provider == "anthropic"
-        assert config.llm_api_key == "env-test-key"
-        assert config.llm_model == "claude-3-opus"
-
-    def test_config_from_env_with_false(self, monkeypatch):
-        """Environment variable 'false' should disable LLM."""
+    def test_config_from_env_learning_rate(self, monkeypatch):
+        """Config should load learning_rate from BOLOR_LEARNING_RATE."""
         from modules.config import Config
 
-        monkeypatch.setenv("BOLOR_LLM_ENABLED", "false")
+        monkeypatch.setenv("BOLOR_LEARNING_RATE", "0.5")
 
         config = Config.from_env()
-        assert config.llm_enabled is False
+        assert config.learning_rate == 0.5
+
+    def test_config_from_env_persistence_dir(self, monkeypatch):
+        """Config should load persistence_dir from BOLOR_PERSISTENCE_DIR."""
+        from modules.config import Config
+
+        monkeypatch.setenv("BOLOR_PERSISTENCE_DIR", "/tmp/test-brain")
+
+        config = Config.from_env()
+        assert config.persistence_dir == "/tmp/test-brain"
+
+    def test_config_from_env_debug(self, monkeypatch):
+        """Config should load debug from BOLOR_DEBUG."""
+        from modules.config import Config
+
+        monkeypatch.setenv("BOLOR_DEBUG", "true")
+
+        config = Config.from_env()
+        assert config.debug is True
 
     def test_config_from_env_defaults(self, monkeypatch):
         """Unset environment variables should use defaults."""
@@ -121,8 +100,10 @@ class TestConfigFromEnvironment:
 
         config = Config.from_env()
 
-        assert config.llm_enabled is False
-        assert config.llm_provider == "ollama"
+        assert config.reasoning_max_depth == 10
+        assert config.learning_rate == 0.1
+        assert config.persistence_dir == "~/.bolor-brain"
+        assert config.debug is False
 
 
 class TestPythonVersionValidation:
@@ -157,12 +138,14 @@ class TestConfigMethods:
         """Config should be convertible to dict."""
         from modules.config import Config
 
-        config = Config(llm_enabled=True, llm_provider="openai")
+        config = Config(reasoning_max_depth=20, learning_rate=0.5)
         config_dict = config.to_dict()
 
         assert isinstance(config_dict, dict)
-        assert config_dict["llm_enabled"] is True
-        assert config_dict["llm_provider"] == "openai"
+        assert config_dict["reasoning_max_depth"] == 20
+        assert config_dict["learning_rate"] == 0.5
+        assert config_dict["persistence_dir"] == "~/.bolor-brain"
+        assert config_dict["debug"] is False
 
     def test_get_and_set_config(self):
         """Global config getter and setter should work."""
@@ -173,58 +156,15 @@ class TestConfigMethods:
         assert isinstance(default_config, Config)
 
         # Set custom config
-        custom_config = Config(llm_enabled=True)
+        custom_config = Config(reasoning_max_depth=50)
         set_config(custom_config)
 
         # Get should return custom config
         retrieved = get_config()
-        assert retrieved.llm_enabled is True
+        assert retrieved.reasoning_max_depth == 50
 
         # Reset to default for other tests
         set_config(Config())
-
-
-class TestConfigAllSettings:
-    """Test all configuration settings exist and have reasonable defaults."""
-
-    def test_all_settings_present(self):
-        """Config should have all expected settings."""
-        from modules.config import Config
-
-        config = Config()
-
-        # LLM settings
-        assert hasattr(config, "llm_enabled")
-        assert hasattr(config, "llm_provider")
-        assert hasattr(config, "llm_api_key")
-        assert hasattr(config, "llm_model")
-        assert hasattr(config, "llm_base_url")
-
-        # Database settings
-        assert hasattr(config, "database_path")
-
-        # Embedding settings
-        assert hasattr(config, "embedding_enabled")
-        assert hasattr(config, "embedding_model")
-
-        # Reasoning settings
-        assert hasattr(config, "reasoning_max_depth")
-
-        # Framework settings
-        assert hasattr(config, "framework_enabled_tiers")
-
-        # Learning settings
-        assert hasattr(config, "learning_rate")
-
-        # Debug settings
-        assert hasattr(config, "debug")
-
-    def test_database_default(self):
-        """Default database path should be set."""
-        from modules.config import Config
-
-        config = Config()
-        assert config.database_path == "brain_mcp_storage/brain.db"
 
 
 class TestConfigValidation:
@@ -284,28 +224,12 @@ class TestConfigValidation:
         config = Config(learning_rate=1.0)
         assert config.learning_rate == 1.0
 
-    def test_framework_enabled_tiers_invalid(self):
-        """Invalid tier values should raise ValueError."""
+    def test_persistence_dir_custom(self):
+        """Custom persistence_dir should be accepted."""
         from modules.config import Config
 
-        with pytest.raises(ValueError, match="framework_enabled_tiers contains invalid values"):
-            Config(framework_enabled_tiers=[0, 1, 8])
-
-        with pytest.raises(ValueError, match="framework_enabled_tiers contains invalid values"):
-            Config(framework_enabled_tiers=[-1, 0, 1])
-
-    def test_framework_enabled_tiers_valid(self):
-        """Valid tier values should be accepted."""
-        from modules.config import Config
-
-        config = Config(framework_enabled_tiers=[0, 7])
-        assert config.framework_enabled_tiers == [0, 7]
-
-        config = Config(framework_enabled_tiers=[0, 1, 2, 3, 4, 5, 6, 7])
-        assert config.framework_enabled_tiers == [0, 1, 2, 3, 4, 5, 6, 7]
-
-        config = Config(framework_enabled_tiers=[])
-        assert config.framework_enabled_tiers == []
+        config = Config(persistence_dir="/tmp/my-brain")
+        assert config.persistence_dir == "/tmp/my-brain"
 
 
 class TestConfigTypeConversion:
@@ -340,34 +264,3 @@ class TestConfigTypeConversion:
 
         assert config.reasoning_max_depth == 10  # Default
         assert config.learning_rate == 0.1  # Default
-
-
-class TestConfigSecurityRedaction:
-    """Test API key redaction in to_dict."""
-
-    def test_to_dict_redacts_api_key_by_default(self):
-        """API key should be redacted by default in to_dict."""
-        from modules.config import Config
-
-        config = Config(llm_api_key="super-secret-key")
-        config_dict = config.to_dict()
-
-        assert config_dict["llm_api_key"] == "***REDACTED***"
-
-    def test_to_dict_can_show_api_key(self):
-        """API key should be visible when redact_secrets=False."""
-        from modules.config import Config
-
-        config = Config(llm_api_key="super-secret-key")
-        config_dict = config.to_dict(redact_secrets=False)
-
-        assert config_dict["llm_api_key"] == "super-secret-key"
-
-    def test_to_dict_no_redaction_when_no_key(self):
-        """No redaction needed when API key is None."""
-        from modules.config import Config
-
-        config = Config(llm_api_key=None)
-        config_dict = config.to_dict()
-
-        assert config_dict["llm_api_key"] is None

@@ -5,13 +5,12 @@ Bolor Brain MCP Server
 
 Model Context Protocol server exposing Bolor Brain reasoning engines to Claude Code.
 
-This server provides tools for:
-- Hybrid reasoning (automatic approach selection)
-- Symbolic reasoning (rule-based inference)
-- Knowledge graph reasoning (relationship exploration)
-- Case-based reasoning (learning from experience)
-- Hypothesis testing (generating and testing theories)
-- Analogical reasoning (cross-domain pattern transfer)
+This server provides 11 tools:
+- 6 reasoning tools (hybrid, symbolic, knowledge graph, case-based, hypothesis, analogical)
+- 4 memory tools (remember, recall, learn, forget)
+- 1 utility tool (brain_stats)
+
+Persists brain state to disk as JSON files.
 
 Author: Bolorerdene Bundgaa
         https://bolor.me
@@ -23,7 +22,9 @@ Usage:
 import asyncio
 import json
 import logging
-from typing import Any, Optional
+import os
+import uuid
+from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -31,33 +32,16 @@ from mcp.types import Tool, TextContent
 
 from modules import (
     HybridReasoner,
-    SymbolicReasoner,
-    KnowledgeGraph,
-    CaseBasedReasoner,
-    HypothesisEngine,
-    AnalogicalReasoner,
     Fact,
-    Rule,
     Node,
     Edge,
     Case,
     Concept,
-    ProblemType,
 )
-
-# Autonomous agent components
-from autonomous_loop import AutonomousAgent, AgentState
-from task_scheduler import TaskScheduler
-from goal_decomposer import GoalDecomposer
+from persistence import BrainPersistence
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Global brain instance
-brain = HybridReasoner()
-
-# Global autonomous agent instance
-autonomous_agent = None  # Initialized when first needed
 
 
 class BolorBrainServer:
@@ -65,7 +49,97 @@ class BolorBrainServer:
 
     def __init__(self):
         self.server = Server("bolor-brain")
+
+        # Initialize persistence
+        persistence_dir = os.environ.get("BOLOR_PERSISTENCE_DIR", None)
+        self.persistence = BrainPersistence(persistence_dir)
+
+        # Initialize brain
+        self.brain = HybridReasoner()
+
+        # Load persisted state
+        self._load_persisted_state()
+
+        # Track reasoning queries
+        self._reasoning_queries = 0
+
         self.setup_handlers()
+
+    def _load_persisted_state(self):
+        """Load persisted cases, facts, and knowledge graph into brain."""
+        # Load cases
+        for case_data in self.persistence.load_cases():
+            case = Case(
+                id=case_data.get("id", ""),
+                problem=case_data.get("problem", {}),
+                solution=case_data.get("solution", {}),
+                outcome=case_data.get("outcome", {}),
+                success=case_data.get("success", True),
+            )
+            self.brain.cbr.store_case(case)
+
+        # Load facts
+        for fact_data in self.persistence.load_facts():
+            fact = Fact(
+                subject=fact_data.get("subject", ""),
+                predicate=fact_data.get("predicate", ""),
+                object=fact_data.get("object", ""),
+                confidence=fact_data.get("confidence", 1.0),
+            )
+            # Preserve original ID if available
+            if "id" in fact_data:
+                fact.id = fact_data["id"]
+            self.brain.symbolic.add_fact(fact)
+
+        # Load knowledge graph
+        nodes, edges = self.persistence.load_knowledge()
+        for node_data in nodes:
+            node = Node(
+                id=node_data["id"],
+                label=node_data["label"],
+                node_type=node_data.get("type", "concept"),
+                properties=node_data.get("properties", {}),
+            )
+            self.brain.kg.add_node(node)
+
+        for edge_data in edges:
+            edge = Edge(
+                source=edge_data["source"],
+                target=edge_data["target"],
+                relation=edge_data["relation"],
+                weight=edge_data.get("weight", 1.0),
+            )
+            self.brain.kg.add_edge(edge)
+
+        logger.info(
+            f"Loaded persisted state: "
+            f"{len(self.brain.cbr.cases)} cases, "
+            f"{len(self.brain.symbolic.facts)} facts, "
+            f"{len(self.brain.kg.nodes)} nodes, "
+            f"{len(self.brain.kg.edges)} edges"
+        )
+
+    def _persist_knowledge_graph(self):
+        """Save the current knowledge graph to disk."""
+        nodes = [
+            {
+                "id": n.id,
+                "label": n.label,
+                "type": n.node_type,
+                "properties": n.properties,
+            }
+            for n in self.brain.kg.nodes.values()
+        ]
+        edges = [
+            {
+                "source": e.source,
+                "target": e.target,
+                "relation": e.relation,
+                "weight": e.weight,
+            }
+            for e in self.brain.kg.edges
+        ]
+        self.persistence.save_knowledge(nodes, edges)
 
     def setup_handlers(self):
         """Set up MCP request handlers."""
@@ -283,11 +357,59 @@ class BolorBrainServer:
                         "required": ["source_domain", "target_domain"],
                     },
                 ),
+                # Memory tools
                 Tool(
-                    name="store_case",
+                    name="remember",
                     description=(
-                        "Store a new case for future case-based reasoning. Use this to "
-                        "help the brain learn from experience and improve future recommendations."
+                        "Store a case, fact, node, or edge in the brain's knowledge base. "
+                        "Persisted to disk for future sessions."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["case", "fact", "node", "edge"],
+                                "description": "Type of knowledge to store",
+                            },
+                            "data": {
+                                "type": "object",
+                                "description": "Knowledge data (structure depends on type)",
+                            },
+                        },
+                        "required": ["type", "data"],
+                    },
+                ),
+                Tool(
+                    name="recall",
+                    description=(
+                        "Retrieve matching cases or facts from the brain's knowledge base."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "object",
+                                "description": "Query to match against (key-value pairs)",
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": ["case", "fact"],
+                                "description": "Type of knowledge to recall (default: case)",
+                            },
+                            "k": {
+                                "type": "integer",
+                                "description": "Number of results to return (default: 3)",
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                ),
+                Tool(
+                    name="learn",
+                    description=(
+                        "Store a problem/solution/outcome case. Shortcut for remember(type='case'). "
+                        "The brain learns from experience and improves future recommendations."
                     ),
                     inputSchema={
                         "type": "object",
@@ -308,111 +430,36 @@ class BolorBrainServer:
                                 "type": "boolean",
                                 "description": "Whether the solution was successful",
                             },
-                            "tags": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Tags for categorization",
-                            },
                         },
                         "required": ["problem", "solution"],
                     },
                 ),
                 Tool(
-                    name="add_knowledge",
+                    name="forget",
                     description=(
-                        "Add facts, rules, nodes, or edges to the brain's knowledge base. "
-                        "Use this to teach the brain domain-specific knowledge."
+                        "Delete a case or fact by ID from the brain's knowledge base."
                     ),
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "knowledge_type": {
+                            "type": {
                                 "type": "string",
-                                "enum": ["fact", "rule", "node", "edge"],
-                                "description": "Type of knowledge to add",
+                                "enum": ["case", "fact"],
+                                "description": "Type of knowledge to delete",
                             },
-                            "data": {
-                                "type": "object",
-                                "description": "Knowledge data (structure depends on type)",
+                            "id": {
+                                "type": "string",
+                                "description": "ID of the case or fact to delete",
                             },
                         },
-                        "required": ["knowledge_type", "data"],
+                        "required": ["type", "id"],
                     },
                 ),
+                # Utility tools
                 Tool(
-                    name="get_stats",
+                    name="brain_stats",
                     description=(
                         "Get statistics about the brain's knowledge base and reasoning activity."
-                    ),
-                    inputSchema={
-                        "type": "object",
-                        "properties": {},
-                    },
-                ),
-                # Autonomous Agent Tools
-                Tool(
-                    name="run_autonomous",
-                    description=(
-                        "Run Claude Code in autonomous mode - like OpenClaw, but secure. "
-                        "Give a high-level goal and the agent works independently: decomposes "
-                        "the goal, creates a schedule, executes tasks, learns from outcomes, "
-                        "and evolves strategies. Features 4-tier security guardrails, Bolor Brain "
-                        "memory, and NSAF evolution. Use this to turn manual workflows into "
-                        "autonomous execution."
-                    ),
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "goal": {
-                                "type": "string",
-                                "description": "High-level goal (e.g., 'Build documentation for Bolor Brain')",
-                            },
-                            "max_duration_minutes": {
-                                "type": "number",
-                                "description": "Optional time limit in minutes (default: unlimited)",
-                            },
-                        },
-                        "required": ["goal"],
-                    },
-                ),
-                Tool(
-                    name="get_autonomous_status",
-                    description=(
-                        "Get current status of autonomous execution. Returns progress, "
-                        "current task, time elapsed, estimated completion, learnings count, "
-                        "and evolution count."
-                    ),
-                    inputSchema={
-                        "type": "object",
-                        "properties": {},
-                    },
-                ),
-                Tool(
-                    name="pause_autonomous",
-                    description=(
-                        "Pause autonomous execution. Current task will complete, then pause. "
-                        "Use resume_autonomous to continue."
-                    ),
-                    inputSchema={
-                        "type": "object",
-                        "properties": {},
-                    },
-                ),
-                Tool(
-                    name="resume_autonomous",
-                    description=(
-                        "Resume paused autonomous execution."
-                    ),
-                    inputSchema={
-                        "type": "object",
-                        "properties": {},
-                    },
-                ),
-                Tool(
-                    name="stop_autonomous",
-                    description=(
-                        "Stop autonomous execution immediately. Progress is saved. "
-                        "Can resume later with a new run_autonomous call."
                     ),
                     inputSchema={
                         "type": "object",
@@ -425,35 +472,23 @@ class BolorBrainServer:
         async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             """Handle tool calls."""
             try:
-                if name == "reason_hybrid":
-                    result = await self._reason_hybrid(arguments)
-                elif name == "reason_symbolic":
-                    result = await self._reason_symbolic(arguments)
-                elif name == "reason_knowledge_graph":
-                    result = await self._reason_knowledge_graph(arguments)
-                elif name == "reason_case_based":
-                    result = await self._reason_case_based(arguments)
-                elif name == "reason_hypothesis":
-                    result = await self._reason_hypothesis(arguments)
-                elif name == "reason_analogical":
-                    result = await self._reason_analogical(arguments)
-                elif name == "store_case":
-                    result = await self._store_case(arguments)
-                elif name == "add_knowledge":
-                    result = await self._add_knowledge(arguments)
-                elif name == "get_stats":
-                    result = await self._get_stats(arguments)
-                # Autonomous agent tools
-                elif name == "run_autonomous":
-                    result = await self._run_autonomous(arguments)
-                elif name == "get_autonomous_status":
-                    result = await self._get_autonomous_status(arguments)
-                elif name == "pause_autonomous":
-                    result = await self._pause_autonomous(arguments)
-                elif name == "resume_autonomous":
-                    result = await self._resume_autonomous(arguments)
-                elif name == "stop_autonomous":
-                    result = await self._stop_autonomous(arguments)
+                handlers = {
+                    "reason_hybrid": self._reason_hybrid,
+                    "reason_symbolic": self._reason_symbolic,
+                    "reason_knowledge_graph": self._reason_knowledge_graph,
+                    "reason_case_based": self._reason_case_based,
+                    "reason_hypothesis": self._reason_hypothesis,
+                    "reason_analogical": self._reason_analogical,
+                    "remember": self._remember,
+                    "recall": self._recall,
+                    "learn": self._learn,
+                    "forget": self._forget,
+                    "brain_stats": self._brain_stats,
+                }
+
+                handler = handlers.get(name)
+                if handler:
+                    result = await handler(arguments)
                 else:
                     result = {"error": f"Unknown tool: {name}"}
 
@@ -467,14 +502,15 @@ class BolorBrainServer:
                     )
                 ]
 
-    # === Tool Implementations ===
+    # === Reasoning Tool Implementations ===
 
     async def _reason_hybrid(self, args: dict) -> dict:
         """Hybrid reasoning - orchestrates all approaches."""
         query = args["query"]
         context = args.get("context", {})
 
-        result = brain.reason({"query": query, "context": context})
+        self._reasoning_queries += 1
+        result = self.brain.reason({"query": query, "context": context})
 
         return {
             "problem_type": result.problem_type.value,
@@ -491,6 +527,8 @@ class BolorBrainServer:
         facts_data = args.get("facts", [])
         mode = args.get("mode", "forward")
 
+        self._reasoning_queries += 1
+
         # Add facts to brain
         for fact_data in facts_data:
             if len(fact_data) >= 3:
@@ -499,25 +537,33 @@ class BolorBrainServer:
                     predicate=fact_data[1],
                     object=fact_data[2],
                 )
-                brain.symbolic.add_fact(fact)
+                self.brain.symbolic.add_fact(fact)
 
         # Run reasoning
         if mode == "backward":
-            # Parse goal from query (simplified)
-            goal = {"query": query}
-            result = brain.symbolic.backward_chain(goal)
+            goal = Fact(subject=query, predicate="is", object="true")
+            success, proof_path = self.brain.symbolic.backward_chain(goal)
+            return {
+                "mode": mode,
+                "success": success,
+                "derived_facts": len(proof_path),
+                "conclusions": [
+                    {"subject": f.subject, "predicate": f.predicate, "object": f.object}
+                    for f in proof_path[:10]
+                ],
+                "reasoning_trace": [f"Backward chaining for: {query}"],
+            }
         else:
-            result = brain.symbolic.forward_chain()
-
-        return {
-            "mode": mode,
-            "derived_facts": len(result.derived),
-            "conclusions": [
-                {"subject": f.subject, "predicate": f.predicate, "object": f.object}
-                for f in result.derived[:10]  # Limit output
-            ],
-            "reasoning_trace": result.reasoning_trace,
-        }
+            derived = self.brain.symbolic.forward_chain()
+            return {
+                "mode": mode,
+                "derived_facts": len(derived),
+                "conclusions": [
+                    {"subject": f.subject, "predicate": f.predicate, "object": f.object}
+                    for f in derived[:10]
+                ],
+                "reasoning_trace": [f"Forward chaining derived {len(derived)} facts"],
+            }
 
     async def _reason_knowledge_graph(self, args: dict) -> dict:
         """Knowledge graph reasoning."""
@@ -527,6 +573,8 @@ class BolorBrainServer:
         source = args.get("source")
         target = args.get("target")
 
+        self._reasoning_queries += 1
+
         # Add nodes and edges
         for node_data in nodes_data:
             node = Node(
@@ -534,7 +582,7 @@ class BolorBrainServer:
                 label=node_data["label"],
                 node_type=node_data.get("type", "concept"),
             )
-            brain.kg.add_node(node)
+            self.brain.kg.add_node(node)
 
         for edge_data in edges_data:
             edge = Edge(
@@ -543,13 +591,13 @@ class BolorBrainServer:
                 relation=edge_data["relation"],
                 weight=edge_data.get("weight", 1.0),
             )
-            brain.kg.add_edge(edge)
+            self.brain.kg.add_edge(edge)
 
         result = {}
 
         # Find path if source and target specified
         if source and target:
-            path_result = brain.kg.find_path(source, target)
+            path_result = self.brain.kg.find_path(source, target)
             if path_result and path_result.found:
                 result["path"] = {
                     "nodes": path_result.path,
@@ -558,8 +606,8 @@ class BolorBrainServer:
 
         # Get graph stats
         result["stats"] = {
-            "total_nodes": len(brain.kg.nodes),
-            "total_edges": len(brain.kg.edges),
+            "total_nodes": len(self.brain.kg.nodes),
+            "total_edges": len(self.brain.kg.edges),
         }
 
         return result
@@ -570,19 +618,21 @@ class BolorBrainServer:
         past_cases = args.get("past_cases", [])
         k = args.get("k", 3)
 
+        self._reasoning_queries += 1
+
         # Add past cases
         for case_data in past_cases:
             case = Case(
-                id=case_data.get("id", ""),
+                id=case_data.get("id") or str(uuid.uuid4())[:8],
                 problem=case_data["problem"],
                 solution=case_data["solution"],
                 outcome=case_data.get("outcome", {}),
                 success=case_data.get("success", True),
             )
-            brain.cbr.store_case(case)
+            self.brain.cbr.store_case(case)
 
         # Retrieve similar cases
-        matches = brain.cbr.retrieve(problem, k=k)
+        matches = self.brain.cbr.retrieve(problem, k=k)
 
         return {
             "query": problem,
@@ -604,21 +654,21 @@ class BolorBrainServer:
         evidence = args.get("evidence", {})
         max_hypotheses = args.get("max_hypotheses", 5)
 
+        self._reasoning_queries += 1
+
         # Generate hypotheses
-        hypotheses = brain.hypothesis.generate_hypotheses(
+        hypotheses = self.brain.hypothesis.generate_hypotheses(
             observation, max_hypotheses=max_hypotheses
         )
 
         # Test against evidence if provided
         if evidence:
             for hyp in hypotheses:
-                # Add evidence to brain for testing
                 for key, value in evidence.items():
                     fact = Fact(subject="evidence", predicate=key, object=str(value))
-                    brain.symbolic.add_fact(fact)
+                    self.brain.symbolic.add_fact(fact)
 
-                # Test hypothesis
-                test_result = brain.hypothesis.test_hypothesis(hyp.id)
+                test_result = self.brain.hypothesis.test_hypothesis(hyp.id)
                 if test_result:
                     hyp.confidence = test_result.confidence
 
@@ -641,48 +691,171 @@ class BolorBrainServer:
         target_domain = args["target_domain"]
         concepts_data = args.get("concepts", [])
 
+        self._reasoning_queries += 1
+
         # Add concepts
         for concept_data in concepts_data:
             concept = Concept(
                 id=concept_data["id"],
                 name=concept_data["name"],
                 domain=concept_data["domain"],
-                properties=concept_data.get("properties", {}),
+                attributes=concept_data.get("properties", {}),
             )
-            brain.analogical.add_concept(concept)
+            self.brain.analogical.add_concept(concept)
 
-        # Find analogies
-        analogies = brain.analogical.find_analogies(source_domain, target_domain)
+        # Find analogy
+        analogy = self.brain.analogical.find_analogy(source_domain, target_domain)
+
+        analogies_output = []
+        if analogy:
+            analogies_output = [
+                {
+                    "source": m.source_concept,
+                    "target": m.target_concept,
+                    "similarity": round(m.similarity, 3),
+                    "mapping_type": m.mapping_type.value,
+                }
+                for m in analogy.mappings[:5]
+            ]
 
         return {
             "source_domain": source_domain,
             "target_domain": target_domain,
-            "analogies": [
-                {
-                    "source": a.source_concept.name,
-                    "target": a.target_concept.name,
-                    "similarity": round(a.similarity, 3),
-                    "mapping_type": a.mapping_type.value,
-                }
-                for a in analogies[:5]  # Limit output
-            ],
+            "analogies": analogies_output,
+            "overall_similarity": round(analogy.overall_similarity, 3) if analogy else 0.0,
         }
 
-    async def _store_case(self, args: dict) -> dict:
-        """Store a case for learning."""
+    # === Memory Tool Implementations ===
+
+    async def _remember(self, args: dict) -> dict:
+        """Store a case, fact, node, or edge."""
+        mem_type = args["type"]
+        data = args["data"]
+
+        if mem_type == "case":
+            case = self.brain.cbr.retain(
+                problem=data.get("problem", {}),
+                solution=data.get("solution", {}),
+                outcome=data.get("outcome", {}),
+                success=data.get("success", True),
+            )
+            self.persistence.save_case({
+                "id": case.id,
+                "problem": case.problem,
+                "solution": case.solution,
+                "outcome": case.outcome,
+                "success": case.success,
+            })
+            return {"success": True, "type": "case", "id": case.id}
+
+        elif mem_type == "fact":
+            fact = Fact(
+                subject=data["subject"],
+                predicate=data["predicate"],
+                object=data["object"],
+                confidence=data.get("confidence", 1.0),
+            )
+            self.brain.symbolic.add_fact(fact)
+            self.persistence.save_fact({
+                "id": fact.id,
+                "subject": fact.subject,
+                "predicate": fact.predicate,
+                "object": fact.object,
+                "confidence": fact.confidence,
+            })
+            return {"success": True, "type": "fact", "id": fact.id}
+
+        elif mem_type == "node":
+            node = Node(
+                id=data["id"],
+                label=data["label"],
+                node_type=data.get("type", "concept"),
+                properties=data.get("properties", {}),
+            )
+            self.brain.kg.add_node(node)
+            self._persist_knowledge_graph()
+            return {"success": True, "type": "node", "id": node.id}
+
+        elif mem_type == "edge":
+            edge = Edge(
+                source=data["source"],
+                target=data["target"],
+                relation=data["relation"],
+                weight=data.get("weight", 1.0),
+            )
+            self.brain.kg.add_edge(edge)
+            self._persist_knowledge_graph()
+            return {"success": True, "type": "edge"}
+
+        else:
+            return {"error": f"Unknown memory type: {mem_type}"}
+
+    async def _recall(self, args: dict) -> dict:
+        """Retrieve matching cases or facts."""
+        query = args["query"]
+        mem_type = args.get("type", "case")
+        k = args.get("k", 3)
+
+        if mem_type == "case":
+            matches = self.brain.cbr.retrieve(query, k=k)
+            return {
+                "cases": [
+                    {
+                        "id": m.case.id,
+                        "similarity": round(m.similarity, 3),
+                        "problem": m.case.problem,
+                        "solution": m.case.solution,
+                        "success": m.case.success,
+                    }
+                    for m in matches
+                ]
+            }
+
+        elif mem_type == "fact":
+            # Search facts by matching subject/predicate/object
+            matching = []
+            for fact in self.brain.symbolic.facts.values():
+                score = 0
+                total = 0
+                for key, value in query.items():
+                    total += 1
+                    if hasattr(fact, key) and str(getattr(fact, key)) == str(value):
+                        score += 1
+                if total > 0 and score > 0:
+                    matching.append({
+                        "id": fact.id,
+                        "subject": fact.subject,
+                        "predicate": fact.predicate,
+                        "object": fact.object,
+                        "confidence": fact.confidence,
+                        "match_score": score / total,
+                    })
+            matching.sort(key=lambda x: x["match_score"], reverse=True)
+            return {"facts": matching[:k]}
+
+        else:
+            return {"error": f"Unknown recall type: {mem_type}"}
+
+    async def _learn(self, args: dict) -> dict:
+        """Store a problem/solution/outcome case (shortcut for remember)."""
         problem = args["problem"]
         solution = args["solution"]
         outcome = args.get("outcome", {})
         success = args.get("success", True)
-        tags = args.get("tags", [])
 
-        case = brain.cbr.retain(
+        case = self.brain.cbr.retain(
             problem=problem,
             solution=solution,
             outcome=outcome,
             success=success,
-            tags=tags,
         )
+        self.persistence.save_case({
+            "id": case.id,
+            "problem": case.problem,
+            "solution": case.solution,
+            "outcome": case.outcome,
+            "success": case.success,
+        })
 
         return {
             "success": True,
@@ -690,171 +863,42 @@ class BolorBrainServer:
             "message": "Case stored successfully for future learning",
         }
 
-    async def _add_knowledge(self, args: dict) -> dict:
-        """Add knowledge to the brain."""
-        knowledge_type = args["knowledge_type"]
-        data = args["data"]
+    async def _forget(self, args: dict) -> dict:
+        """Delete a case or fact by ID."""
+        mem_type = args["type"]
+        item_id = args["id"]
 
-        if knowledge_type == "fact":
-            fact = Fact(
-                subject=data["subject"],
-                predicate=data["predicate"],
-                object=data["object"],
-                confidence=data.get("confidence", 1.0),
-            )
-            brain.symbolic.add_fact(fact)
-            return {"success": True, "type": "fact", "id": fact.id}
+        if mem_type == "case":
+            removed_from_brain = self.brain.cbr.remove_case(item_id)
+            removed_from_disk = self.persistence.delete_case(item_id)
+            success = removed_from_brain or removed_from_disk
+            return {
+                "success": success,
+                "message": f"Case {item_id} {'deleted' if success else 'not found'}",
+            }
 
-        elif knowledge_type == "node":
-            node = Node(
-                id=data["id"],
-                label=data["label"],
-                node_type=data.get("type", "concept"),
-                properties=data.get("properties", {}),
-            )
-            brain.kg.add_node(node)
-            return {"success": True, "type": "node", "id": node.id}
-
-        elif knowledge_type == "edge":
-            edge = Edge(
-                source=data["source"],
-                target=data["target"],
-                relation=data["relation"],
-                weight=data.get("weight", 1.0),
-            )
-            brain.kg.add_edge(edge)
-            return {"success": True, "type": "edge"}
+        elif mem_type == "fact":
+            removed_from_brain = self.brain.symbolic.remove_fact(item_id)
+            removed_from_disk = self.persistence.delete_fact(item_id)
+            success = removed_from_brain or removed_from_disk
+            return {
+                "success": success,
+                "message": f"Fact {item_id} {'deleted' if success else 'not found'}",
+            }
 
         else:
-            return {"error": f"Unknown knowledge type: {knowledge_type}"}
+            return {"error": f"Unknown forget type: {mem_type}"}
 
-    async def _get_stats(self, args: dict) -> dict:
+    # === Utility Tool Implementations ===
+
+    async def _brain_stats(self, args: dict) -> dict:
         """Get brain statistics."""
-        stats = brain.get_stats()
-        return stats
-
-    # === Autonomous Agent Tool Implementations ===
-
-    async def _run_autonomous(self, args: dict) -> dict:
-        """Run autonomous agent with goal."""
-        global autonomous_agent
-
-        goal = args["goal"]
-        max_duration_minutes = args.get("max_duration_minutes")
-
-        # Initialize agent if not exists
-        if autonomous_agent is None:
-            autonomous_agent = AutonomousAgent(
-                brain_client=brain,
-                nsaf_client=None,  # Will connect to NSAF MCP when available
-            )
-
-        # Convert max_duration to timedelta
-        from datetime import timedelta
-        max_duration = None
-        if max_duration_minutes:
-            max_duration = timedelta(minutes=max_duration_minutes)
-
-        # Run autonomously
-        try:
-            report = await autonomous_agent.run_autonomous(
-                goal=goal,
-                max_duration=max_duration
-            )
-
-            return {
-                "success": True,
-                "status": "complete",
-                "goal": report["goal"],
-                "duration": report["duration"],
-                "tasks_completed": report["tasks_completed"],
-                "tasks_failed": report["tasks_failed"],
-                "success_rate": report["success_rate"],
-                "learnings_count": report["learnings_count"],
-                "evolutions_count": report["evolutions_count"],
-            }
-
-        except Exception as e:
-            logger.exception("Error in autonomous execution")
-            return {
-                "success": False,
-                "error": str(e),
-                "message": "Autonomous execution failed"
-            }
-
-    async def _get_autonomous_status(self, args: dict) -> dict:
-        """Get autonomous agent status."""
-        global autonomous_agent
-
-        if autonomous_agent is None:
-            return {
-                "status": "not_started",
-                "message": "No autonomous execution running"
-            }
-
-        status = autonomous_agent.get_status()
-
         return {
-            "state": status.state.value,
-            "current_task": status.current_task,
-            "progress": f"{status.progress:.1%}",
-            "tasks_completed": status.tasks_completed,
-            "tasks_total": status.tasks_total,
-            "time_elapsed": str(status.time_elapsed),
-            "estimated_completion": str(status.estimated_completion) if status.estimated_completion else None,
-            "learnings_count": status.learnings_count,
-            "evolutions_count": status.evolutions_count,
-        }
-
-    async def _pause_autonomous(self, args: dict) -> dict:
-        """Pause autonomous execution."""
-        global autonomous_agent
-
-        if autonomous_agent is None:
-            return {
-                "success": False,
-                "message": "No autonomous execution running"
-            }
-
-        autonomous_agent.pause()
-
-        return {
-            "success": True,
-            "message": "Autonomous execution paused. Current task will complete."
-        }
-
-    async def _resume_autonomous(self, args: dict) -> dict:
-        """Resume autonomous execution."""
-        global autonomous_agent
-
-        if autonomous_agent is None:
-            return {
-                "success": False,
-                "message": "No autonomous execution to resume"
-            }
-
-        autonomous_agent.resume()
-
-        return {
-            "success": True,
-            "message": "Autonomous execution resumed"
-        }
-
-    async def _stop_autonomous(self, args: dict) -> dict:
-        """Stop autonomous execution."""
-        global autonomous_agent
-
-        if autonomous_agent is None:
-            return {
-                "success": False,
-                "message": "No autonomous execution running"
-            }
-
-        autonomous_agent.stop()
-
-        return {
-            "success": True,
-            "message": "Autonomous execution stopped. Progress saved."
+            "cases": len(self.brain.cbr.cases),
+            "facts": len(self.brain.symbolic.facts),
+            "nodes": len(self.brain.kg.nodes),
+            "edges": len(self.brain.kg.edges),
+            "reasoning_queries": self._reasoning_queries,
         }
 
     async def run(self):

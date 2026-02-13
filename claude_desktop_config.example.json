@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "bolor-brain": {
-      "command": "python",
-      "args": ["-m", "bolor-brain-mcp"],
-      "cwd": "/path/to/bolor-brain-mcp"
-    }
-  }
-}
